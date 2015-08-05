@@ -1,0 +1,3 @@
+segtok>=1.4.0
+testfixtures>=4.1.0
+hypothesis>=1.10.0
