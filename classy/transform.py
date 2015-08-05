@@ -1,6 +1,6 @@
 """
-.. py:module:: 
-   :synopsis: 
+.. py:module::  classy.transform
+   :synopsis: Transform text and additional features into sparse matrices.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
@@ -8,6 +8,11 @@
 import logging
 import itertools
 
+# Create sparse matrix with scipy:
+# scipy.sparse.csr_matrix - see
+# http://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.sparse.csr_matrix.html
+# scikit-learn strategy - see
+# https://github.com/scikit-learn/scikit-learn/blob/a95203b/sklearn/feature_extraction/text.py#L724
 
 class Transformer:
 

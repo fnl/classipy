@@ -1,11 +1,6 @@
-"""
-TODO: Description
-"""
 from unittest import TestCase
 from classy.extract import row_generator_from_file, Extractor
 from tempfile import TemporaryFile
-
-__author__ = 'Florian Leitner <florian.leitner@gmail.com>'
 
 
 def make_data(rows, columns, text_columns=None, with_quotes=False):
