@@ -1,5 +1,5 @@
 from unittest import TestCase
-from classy.transform import Transformer
+from classy.transform import Transformer, AnnotationTransformer
 from testfixtures import LogCapture
 
 
@@ -110,3 +110,64 @@ class TestTransformer(TestCase):
             t = Transformer([[TestTransformer.segments]]*3)
             next(iter(t))
             l.check()
+
+
+class TestAnnotationTransformer(TestCase):
+
+    rows = lambda: [[1, ["token1", "token2"], "col3", "col4"]]
+    groups = {1: (2, 3)}
+
+    def test_init(self):
+        rows = TestAnnotationTransformer.rows()
+        groups = TestAnnotationTransformer.groups
+        at = AnnotationTransformer(rows, groups, 2, 3)
+        self.assertTupleEqual((3, 2), at.dropped_cols)
+        self.assertDictEqual(groups, at.groups)
+
+    def test_iter(self):
+        rows = TestAnnotationTransformer.rows()
+        groups = TestAnnotationTransformer.groups
+        at = AnnotationTransformer(rows, groups, 2, 3)
+        row = next(iter(at))
+        self.assertListEqual([1, ["col3:col4:token1",
+                                  "col3:col4:token2"]], row)
+
+    def test_index_error_annotation_col(self):
+        rows = TestAnnotationTransformer.rows()
+        groups = {1: (3, 4)}
+        at = AnnotationTransformer(rows, groups)
+        self.assertRaisesRegex(RuntimeError,
+                               r'len\(row\)=4, but annotation_col_indices=\(3, 4\)',
+                               lambda: next(iter(at)))
+
+    def test_wrong_annotation_col(self):
+        rows = TestAnnotationTransformer.rows()
+        groups = {1: (1, 3)}
+        at = AnnotationTransformer(rows, groups)
+        self.assertRaisesRegex(RuntimeError,
+                               r'not all annotation_columns=\(1, 3\) are strings',
+                               lambda: next(iter(at)))
+
+    def test_index_error_text_col(self):
+        rows = TestAnnotationTransformer.rows()
+        groups = {4: (2, 3)}
+        at = AnnotationTransformer(rows, groups)
+        self.assertRaisesRegex(RuntimeError,
+                               r'len\(row\)=4, but token_column_index=4',
+                               lambda: next(iter(at)))
+
+    def test_wrong_text_col(self):
+        rows = TestAnnotationTransformer.rows()
+        groups = {2: (3,)}
+        at = AnnotationTransformer(rows, groups)
+        self.assertRaisesRegex(AssertionError,
+                               r'column=2 not a list',
+                               lambda: next(iter(at)))
+
+    def test_index_error_dropped_cols(self):
+        rows = TestAnnotationTransformer.rows()
+        groups = TestAnnotationTransformer.groups
+        at = AnnotationTransformer(rows, groups, 3, 4)
+        self.assertRaisesRegex(RuntimeError,
+                               r'row has no column 4 to drop',
+                               lambda: next(iter(at)))
