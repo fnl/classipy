@@ -5,7 +5,10 @@
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
-import logging
+from array import array
+from scipy.sparse import csr_matrix
+from collections import defaultdict
+from numpy import int32
 import itertools
 
 
@@ -20,33 +23,20 @@ class Transformer:
         self.rows = iter(extractor)
         self.N = N
         self.K = K
-        self._token_cols = []
+        self.token_columns = extractor.text_columns
+        self.names = extractor.names
 
     def __iter__(self):
-        self._token_cols = []
-        row = next(self.rows)
-
-        for i, v in enumerate(row):
-            if isinstance(v, list):
-                self._token_cols.append(i)
-                self._extract(row, i)
-
-        if len(self._token_cols) == 0:
-            logging.warning('Transformer found no token columns in input')
-
-        yield row
-
         for row in self.rows:
-            for i in self._token_cols:
+            for i in self.token_columns:
                 self._extract(row, i)
 
             yield row
 
     def _extract(self, row, i):
-        if row[i] and len(row[i]):
-            ngrams = self.ngram(row[i])
-            shingles = self.kshingle(row[i])
-            row[i] = list(itertools.chain(ngrams, shingles))
+        ngrams = self.ngram(row[i])
+        shingles = self.kshingle(row[i])
+        row[i] = list(itertools.chain(ngrams, shingles))
 
     def ngram(self, token_segments):
         N = range(1, self.N + 1)
@@ -73,60 +63,115 @@ class AnnotationTransformer:
             int(token_col): tuple(int(c) for c in ann_cols)
             for token_col, ann_cols in groups.items()
         }
-
-    def __iter__(self):
-        row = next(self.rows)
-
-        for token_col, annotation_cols in self.groups.items():
-            try:
-                name = ':'.join(row[c] for c in annotation_cols)
-            except IndexError as ex1:
-                msg = "len(row)={}, but annotation_col_indices={}"
-                raise RuntimeError(msg.format(len(row), annotation_cols)) from ex1
-            except TypeError as ex2:
-                msg = "not all annotation_columns={} are strings"
-                raise RuntimeError(msg.format(annotation_cols)) from ex2
-
-            try:
-                assert isinstance(row[token_col], list), "column={} not a list".format(token_col)
-                row[token_col] = ['{}:{}'.format(name, token) for token in row[token_col]]
-            except IndexError as ex3:
-                msg = "len(row)={}, but token_column_index={}"
-                raise RuntimeError(msg.format(len(row), token_col)) from ex3
+        self.token_columns = transformer.token_columns
+        self._names = transformer.names
+        self.names = list(self._names)
 
         for col in self.dropped_cols:
             try:
-                del row[col]
-            except IndexError as ex4:
-                raise RuntimeError('row has no column {} to drop'.format(col)) from ex4
+                del self.names[col]
+            except IndexError as ex:
+                msg = "names={}, dropped_columns={}; illegal dropped columns index?"
+                raise RuntimeError(msg.format(self._names, dropped_columns)) from ex
 
-        yield row
+
+        for col in self.groups:
+            msg = "column {} [{}] not a known token column: {}"
+            assert col in self.token_columns, \
+                msg.format(col, self._names[col] if col < len(self._names) else "ERROR",
+                           self.token_columns)
+
+    def __iter__(self):
+        for row in self.rows:
+            for token_col, annotation_cols in self.groups.items():
+                try:
+                    name = ':'.join(row[c] for c in annotation_cols)
+                except IndexError as ex1:
+                    msg = "len(row)={}, but annotation_col_indices={}"
+                    raise RuntimeError(msg.format(len(row), annotation_cols)) from ex1
+                except TypeError as ex2:
+                    msg = "not all annotation_columns={} are strings"
+                    raise RuntimeError(msg.format(annotation_cols)) from ex2
+
+                try:
+                    row[token_col] = ['{}:{}'.format(name, token) for token in row[token_col]]
+                except IndexError as ex3:
+                    msg = "len(row)={}, but token_column_index={} [{}]"
+                    raise RuntimeError(
+                        msg.format(len(row), token_col, self._names[token_col])
+                    ) from ex3
+
+            for col in self.dropped_cols:
+                try:
+                    del row[col]
+                except IndexError as ex4:
+                    raise RuntimeError('row has no column {} to drop'.format(col)) from ex4
+
+            yield row
+
+
+def ones(num):
+    for i in range(num):
+        yield 1
 
 
 class FeatureEncoder:
-    def __init__(self, transformer):
+    def __init__(self, transformer, vocabulary=None, id_col=0, label_col=-1):
         self.rows = transformer
-        self.feature_cols = None
+        self.token_columns = transformer.token_columns
+        self.names = transformer.names
+        self.id_col = id_col
+        self.label_col = label_col
+        self.vocabulary = vocabulary
+        self.text_ids = []
+        self.labels = []
 
-    def __iter__(self):
-        return self
+    def _multirow_token_generator(self, row):
+        template = '{}:{}'
 
-    def __next__(self):
-        row = next(self.rows)
+        for col in self.token_columns:
+            name = self.names[col]
 
-        if self.feature_cols is None:
-            self.feature_cols = []
-            found_text = False
+            for token in row[col]:
+                yield template.format(name, token)
 
-            for i, col in row:
-                if isinstance(col, list):
-                    found_text = True
-                elif found_text:
-                    self.feature_cols.append((i, []))
+    def _singlerow_token_generator(self, row):
+        yield from row[self.token_columns[0]]
 
-        for i, features in self.feature_cols:
-            idx = features.index(row[i])
+    def make_sparse_matrix(self):
+        indices = array('L')
+        indptr = array('L')
+        self.text_ids = []
+        self.labels = []
 
-            if idx == -1:
-                idx = len(features)
-                features.append(row[i])
+        if self.vocabulary is None:
+            V = defaultdict(int)
+            V.default_factory = self.vocabulary.__len__
+        else:
+            V = self.vocabulary
+
+        if len(self.token_columns) == 1:
+            token_generator = self._singlerow_token_generator
+        else:
+            token_generator = self._multirow_token_generator
+
+        for row in self.rows:
+            self.text_ids.append(row[self.id_col])
+            self.labels.append(row[self.label_col])
+
+            for t in token_generator(row):
+                try:
+                    indices.append(V[t])
+                except KeyError:
+                    pass # ignore missing vocabulary
+
+            indptr.append(len(indices))
+
+        if self.vocabulary is None:
+            self.vocabulary = dict(V)
+
+        matrix = csr_matrix((ones(len(indices)), indices, indptr),
+                            shape=(len(indptr) - 1, len(V)),
+                            dtype=int32)
+        matrix.sum_duplicates()
+        return matrix
