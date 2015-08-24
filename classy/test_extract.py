@@ -49,6 +49,7 @@ def remove_quotes(data, columns):
 
     return unquoted_data
 
+
 class TestRowGeneratorFromFile(TestCase):
 
     def test_row_generator_from_file(self):

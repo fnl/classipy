@@ -1,16 +1,14 @@
 """
 .. py:module:: classy.extract
-   :synopsis: Extract columnar character data.
+   :synopsis: Extract column-based character text data.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
-from collections import Counter
-
-__author__ = 'Florian Leitner <florian.leitner@gmail.com>'
 
 import logging
 from csv import reader, register_dialect, QUOTE_NONE
+from etbase import Etc
 from segtok.segmenter import split_single
 from segtok.tokenizer import word_tokenizer
 
@@ -32,7 +30,7 @@ def row_generator(input_stream, dialect='plain'):
     yield from reader(input_stream, dialect)
 
 
-class Extractor:
+class Extractor(Etc):
 
     """
     The extractor produces tokenized text(s) with any provided metadata.
@@ -59,7 +57,8 @@ class Extractor:
                       sentence or not
         :return:
         """
-        self.text_columns = list()
+        super(Extractor, self).__init__()
+        text_columns = list()
 
         if lower:
             self._lower = lambda s: s.lower()
@@ -74,11 +73,11 @@ class Extractor:
             self._decap = lambda s: s
 
         if has_title:
-            self.names = tuple(next(row_gen))
+            self.names = next(row_gen)
             self._curr_row = next(row_gen)
         else:
             self._curr_row = next(row_gen)
-            self.names = tuple(str(i + 1) for i in range(len(self._curr_row)))
+            self.names = (str(i + 1) for i in range(len(self._curr_row)))
 
         self._row_len = len(self._curr_row)
         self._row_gen = row_gen
@@ -86,9 +85,9 @@ class Extractor:
         for column_nr, cell_content in enumerate(self._curr_row):
             if ' ' in cell_content or len(cell_content) == 0:
                 # noinspection PyUnresolvedReferences
-                self.text_columns.append(column_nr)
+                text_columns.append(column_nr)
 
-        self.text_columns = tuple(self.text_columns)
+        self.text_columns = text_columns
         L.debug('text columns: %s', ' '.join(
             self.names[i] for i in self.text_columns
         ))

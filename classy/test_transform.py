@@ -1,11 +1,11 @@
 from unittest import TestCase
-from classy.transform import Transformer, AnnotationTransformer
+from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
+from etbase import Etc
+from scipy.sparse import csr_matrix
+from numpy import int32
 
 
-class Sentinel:
-
-    text_columns = None
-    names = None
+class Sentinel(Etc):
 
     def __iter__(self):
         return self
@@ -14,7 +14,7 @@ class Sentinel:
         return self
 
 
-class Rows:
+class Rows(Etc):
 
     def __init__(self, rows=None):
         self.token_columns = self.text_columns = (1,)
@@ -47,33 +47,40 @@ class TestTransformer(TestCase):
         self.assertEqual(None, t.token_columns)
 
     def test_unigram(self):
-        expected = TestTransformer.tokensA + \
-                   TestTransformer.tokensB
+        expected = TestTransformer.tokensA + TestTransformer.tokensB
         t = Transformer(Sentinel(), N=1)
-        self.assertListEqual(expected, list(t.ngram(TestTransformer.segments)))
+        self.assertListEqual(expected,
+                             list(t.ngram(TestTransformer.segments)))
 
     def test_bigram(self):
-        expected = TestTransformer.tokensA + \
-                   ['a b', 'b c', 'c .'] + \
-                   TestTransformer.tokensB + \
-                   ['A B', 'B C', 'C .']
+        expected = TestTransformer.tokensA + [
+            'a b', 'b c', 'c .'
+        ] + TestTransformer.tokensB + [
+            'A B', 'B C', 'C .'
+        ]
         t = Transformer(Sentinel(), N=2)
-        self.assertListEqual(expected, list(t.ngram(TestTransformer.segments)))
+        self.assertListEqual(expected,
+                             list(t.ngram(TestTransformer.segments)))
 
     def test_trigram(self):
-        expected = TestTransformer.tokensA + \
-                   ['a b', 'b c', 'c .'] + \
-                   ['a b c', 'b c .'] + \
-                   TestTransformer.tokensB + \
-                   ['A B', 'B C', 'C .'] + \
-                   ['A B C', 'B C .']
+        expected = TestTransformer.tokensA + [
+            'a b', 'b c', 'c .'
+        ] + [
+            'a b c', 'b c .'
+        ] + TestTransformer.tokensB + [
+            'A B', 'B C', 'C .'
+        ] + [
+            'A B C', 'B C .'
+        ]
         t = Transformer(Sentinel(), N=3)
-        self.assertListEqual(expected, list(t.ngram(TestTransformer.segments)))
+        self.assertListEqual(expected,
+                             list(t.ngram(TestTransformer.segments)))
 
     def test_unishingle(self):
         expected = []
         t = Transformer(Sentinel(), K=1)
-        self.assertListEqual(expected, list(t.kshingle(TestTransformer.segments)))
+        self.assertListEqual(expected,
+                             list(t.kshingle(TestTransformer.segments)))
 
     def test_bishingle(self):
         expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
@@ -82,7 +89,8 @@ class TestTransformer(TestCase):
                     'a_b', 'a_c',
                     'b_c']
         t = Transformer(Sentinel(), K=2)
-        self.assertListEqual(expected, list(t.kshingle(TestTransformer.segments)))
+        self.assertListEqual(expected,
+                             list(t.kshingle(TestTransformer.segments)))
 
     def test_trishingle(self):
         expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
@@ -95,7 +103,8 @@ class TestTransformer(TestCase):
                     'C_a_b', 'C_a_c', 'C_b_c',
                     'a_b_c']
         t = Transformer(Sentinel(), K=3)
-        self.assertListEqual(expected, list(t.kshingle(TestTransformer.segments)))
+        self.assertListEqual(expected,
+                             list(t.kshingle(TestTransformer.segments)))
 
     def test_extract(self):
         row = [TestTransformer.segments, []]
@@ -112,7 +121,7 @@ class TestTransformer(TestCase):
         expected = [1, TestTransformer.tokensA +
                     TestTransformer.tokensB]
         n = -1
-        rows = Rows([[1, TestTransformer.segments]]*3)
+        rows = Rows([[1, TestTransformer.segments]] * 3)
 
         for n, row in enumerate(Transformer(rows, N=1)):
             self.assertListEqual(expected, row)
@@ -180,3 +189,58 @@ class TestAnnotationTransformer(TestCase):
                                r"names=\('id', 'text', 'attribute', 'label'\), "
                                r"dropped_columns=\(3, 4\); illegal dropped columns index\?",
                                AnnotationTransformer, rows, groups, 3, 4)
+
+
+class TestFeatureEncoder(TestCase):
+
+    rows = [
+        ["ID 1", ["a", "b", "c", "a", "b", "a"], ["a", "b", "x"], "Label 1"],
+        ["ID 2", ["a", "b", "d", "a", "b", "a"], ["a", "x", "d"], "Label 2"],
+    ]
+
+    def test_init(self):
+        rows = Rows(TestFeatureEncoder.rows)
+        fe = FeatureEncoder(rows)
+        self.assertEqual(None, fe.vocabulary)
+        self.assertEqual(0, fe.id_col)
+        self.assertEqual(-1, fe.label_col)
+
+    def test_multirow_token_generator(self):
+        rows = Rows(TestFeatureEncoder.rows)
+        rows.names = ("id", "text1", "text2", "label")
+        rows.token_columns = (1, 2)
+        fe = FeatureEncoder(rows)
+
+        for instance in range(2):
+            result = [
+                'text{}:{}'.format(i, t)
+                for i in range(1, 3)
+                for t in rows.rows[instance][i]
+            ]
+            idx = -1
+            gen = fe._multirow_token_generator(rows.rows[instance])
+
+            for idx, token in enumerate(gen):
+                self.assertEqual(result[idx], token)
+
+            self.assertEqual(len(result) - 1, idx)
+
+    def test_sparse_matrix(self):
+        rows = Rows(TestFeatureEncoder.rows)
+        fe = FeatureEncoder(rows)
+        inv_idx = fe.make_sparse_matrix()
+        expected = csr_matrix(((3, 2, 1, 3, 2, 1),
+                               ((0, 0, 0, 1, 1, 1), (0, 1, 2, 0, 1, 3))),
+                              shape=(2, 4),
+                              dtype=int32)
+        to_string = lambda mat: str(mat.toarray()).replace('\n', ',')
+        # scipy.sparse.matrix.nnz: number of non-zero values
+        self.assertEqual(abs(inv_idx - expected).nnz, 0,
+                         "{} != {}".format(to_string(expected),
+                                           to_string(inv_idx)))
+
+    def test_make_vocabulary(self):
+        rows = Rows(TestFeatureEncoder.rows)
+        fe = FeatureEncoder(rows)
+        fe.make_sparse_matrix()
+        self.assertEqual({'a': 0, 'b': 1, 'c': 2, 'd': 3}, fe.vocabulary)
