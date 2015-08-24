@@ -127,7 +127,7 @@ class FeatureEncoder:
         self.labels = []
 
     def _multirow_token_generator(self, row):
-        template = '{}:{}'
+        template = '{}={}'
 
         for col in self.token_columns:
             name = self.names[col]
