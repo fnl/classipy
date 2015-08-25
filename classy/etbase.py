@@ -18,7 +18,6 @@ class Etc:
             assert isinstance(ante, Etc)
 
         self._names = None if ante is None else ante.names
-        self._token_columns = None if ante is None else ante.token_columns
         self._text_columns = None if ante is None else ante.text_columns
 
     @property
@@ -31,17 +30,6 @@ class Etc:
             self._names = tuple(n for n in names if isinstance(n, str))
         else:
             self._names = None
-
-    @property
-    def token_columns(self):
-        return self._token_columns
-
-    @token_columns.setter
-    def token_columns(self, token_columns):
-        if token_columns is not None:
-            self._token_columns = tuple(int(c) for c in token_columns)
-        else:
-            self._token_columns = None
 
     @property
     def text_columns(self):

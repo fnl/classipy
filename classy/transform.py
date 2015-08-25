@@ -7,13 +7,14 @@
 """
 
 from array import array
-from etbase import Etc
+import logging
+from classy.etbase import Etc
 from scipy.sparse import csr_matrix
 from collections import defaultdict
 from numpy import int32, ones
 import itertools
 
-
+L = logging.getLogger(__name__)
 # Create sparse matrix with scipy:
 # scipy.sparse.csr_matrix - see
 # http://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.sparse.csr_matrix.html
@@ -37,6 +38,7 @@ class Transformer(Etc):
                   (``1`` implies no shingling)
         """
         super(Transformer, self).__init__(extractor)
+        L.debug("N=%s, K=%s", N, K)
         self.rows = iter(extractor)
         self.N = int(N)
         self.K = int(K)
@@ -49,7 +51,7 @@ class Transformer(Etc):
 
     def __iter__(self):
         for row in self.rows:
-            for i in self.token_columns:
+            for i in self.text_columns:
                 self._extract(row, i)
 
             yield row
@@ -117,6 +119,7 @@ class AnnotationTransformer(Etc):
                                 the merged annotation columns)
         """
         super(AnnotationTransformer, self).__init__(transformer)
+        L.debug("groups=%s, dropped_columns=%s", groups, dropped_columns)
         self.rows = iter(transformer)
         self.dropped_cols = tuple(
             int(c) for c in sorted(set(dropped_columns), reverse=True)
@@ -142,8 +145,8 @@ class AnnotationTransformer(Etc):
         for col in self.groups:
             msg = "column {} [{}] not a known token column: {}"
             col_name = self._names[col] if col < len(self._names) else "ERROR"
-            err = msg.format(col, col_name, self.token_columns)
-            assert col in self.token_columns, err
+            err = msg.format(col, col_name, self.text_columns)
+            assert col in self.text_columns, err
 
     def __iter__(self):
         for row in self.rows:
@@ -195,7 +198,8 @@ class FeatureEncoder(Etc):
     in the input, that missing feature is ignored (not counted).
     """
 
-    def __init__(self, transformer, vocabulary=None, id_col=0, label_col=-1):
+    def __init__(self, transformer, vocabulary=None, grow_vocab=False,
+                 id_col=0, label_col=-1):
         """
         :param transformer: the input Transformer stream
         :param vocabulary: optionally, use a predefined vocabulary
@@ -203,26 +207,32 @@ class FeatureEncoder(Etc):
                        (0-based; None implies there is no label column present)
         :param label_col: the column containing the document/instance label (0-
                           based; None implies there is no label column present)
+        :param grow_vocab: expand the vocabulary (if given, instead of ignoring
+                           missing words)
         """
         super(FeatureEncoder, self).__init__(transformer)
+        L.debug("vocabulary=%s grow=%s id_col=%s label_col=%s",
+                "NO" if vocabulary is None else "YES",
+                grow_vocab, id_col, label_col)
         self.rows = iter(transformer)
         self.id_col = None if id_col is None else int(id_col)
         self.label_col = None if label_col is None else int(label_col)
         self.vocabulary = None if vocabulary is None else dict(vocabulary)
         self.text_ids = []
         self.labels = []
+        self._grow = grow_vocab and self.vocabulary is not None
 
     def _multirow_token_generator(self, row):
         template = '{}={}'
 
-        for col in self.token_columns:
+        for col in self.text_columns:
             name = self.names[col]
 
             for token in row[col]:
                 yield template.format(name, token)
 
     def _singlerow_token_generator(self, row):
-        yield from row[self.token_columns[0]]
+        yield from row[self.text_columns[0]]
 
     def make_sparse_matrix(self):
         indices = array('L')
@@ -231,13 +241,16 @@ class FeatureEncoder(Etc):
         self.text_ids = []
         self.labels = []
 
-        if self.vocabulary is None:
+        if self.vocabulary is None or self._grow:
             V = defaultdict(int)
             V.default_factory = V.__len__
+
+            if self._grow and self.vocabulary is not None:
+                V.update(self.vocabulary)
         else:
             V = self.vocabulary
 
-        if len(self.token_columns) == 1:
+        if len(self.text_columns) == 1:
             token_generator = self._singlerow_token_generator
         else:
             token_generator = self._multirow_token_generator
@@ -257,7 +270,7 @@ class FeatureEncoder(Etc):
 
             indptr.append(len(indices))
 
-        if self.vocabulary is None:
+        if self.vocabulary is None or self._grow:
             self.vocabulary = dict(V)
 
         matrix = csr_matrix((ones(len(indices)), indices, indptr),

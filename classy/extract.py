@@ -8,7 +8,7 @@
 
 import logging
 from csv import reader, register_dialect, QUOTE_NONE
-from etbase import Etc
+from classy.etbase import Etc
 from segtok.segmenter import split_single
 from segtok.tokenizer import word_tokenizer
 
@@ -58,6 +58,7 @@ class Extractor(Etc):
         :return:
         """
         super(Extractor, self).__init__()
+        L.debug('has_title=%s lower=%s decap=%s', has_title, lower, decap)
         text_columns = list()
 
         if lower:
@@ -88,7 +89,7 @@ class Extractor(Etc):
                 text_columns.append(column_nr)
 
         self.text_columns = text_columns
-        L.debug('text columns: %s', ' '.join(
+        L.debug('text columns: [%s]', ', '.join(
             self.names[i] for i in self.text_columns
         ))
 
@@ -111,8 +112,8 @@ class Extractor(Etc):
         except StopIteration:
             self._curr_row = None
 
-        data = tuple((row[col] if col not in self.text_columns else [])
-                     for col in range(self._row_len))
+        data_or_text = lambda c: row[c] if c not in self.text_columns else []
+        data = [data_or_text(col) for col in range(self._row_len)]
 
         for col in self.text_columns:
             for sentence in split_single(row[col]):

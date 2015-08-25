@@ -1,6 +1,6 @@
 from unittest import TestCase
 from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
-from etbase import Etc
+from classy.etbase import Etc
 from scipy.sparse import csr_matrix
 from numpy import int32
 
@@ -17,7 +17,7 @@ class Sentinel(Etc):
 class Rows(Etc):
 
     def __init__(self, rows=None):
-        self.token_columns = self.text_columns = (1,)
+        self.text_columns = self.text_columns = (1,)
         self.names = ("id", "text", "attribute", "label")
         self.rows = rows
 
@@ -44,7 +44,7 @@ class TestTransformer(TestCase):
         self.assertEqual(s, t.rows)
         self.assertEqual(2, t.N)
         self.assertEqual(1, t.K)
-        self.assertEqual(None, t.token_columns)
+        self.assertEqual(None, t.text_columns)
 
     def test_unigram(self):
         expected = TestTransformer.tokensA + TestTransformer.tokensB
@@ -208,22 +208,22 @@ class TestFeatureEncoder(TestCase):
     def test_multirow_token_generator(self):
         rows = Rows(TestFeatureEncoder.rows)
         rows.names = ("id", "text1", "text2", "label")
-        rows.token_columns = (1, 2)
+        rows.text_columns = (1, 2)
         fe = FeatureEncoder(rows)
 
         for instance in range(2):
-            result = [
-                'text{}:{}'.format(i, t)
-                for i in range(1, 3)
-                for t in rows.rows[instance][i]
-            ]
-            idx = -1
+            expected = []
+            for i in range(1, 3):
+                for t in rows.rows[instance][i]:
+                    expected.append('text{}={}'.format(i, t))
             gen = fe._multirow_token_generator(rows.rows[instance])
+            received = []
 
             for idx, token in enumerate(gen):
-                self.assertEqual(result[idx], token)
+                self.assertEqual(expected[idx], token)
+                received.append(token)
 
-            self.assertEqual(len(result) - 1, idx)
+            self.assertListEqual(expected, received)
 
     def test_sparse_matrix(self):
         rows = Rows(TestFeatureEncoder.rows)

@@ -39,7 +39,7 @@ def sub_all(patterns, mask, lines):
     return [patterns.sub(mask, line) for line in lines]
 
 
-def as_dict(sentence: Sentence, ngrams=2):
+def as_dict(sentence, ngrams=2):
     """Convert a :class:`fnl.text.sentence.Sentence` into a feature dictionary."""
     d = {'gene-count': sentence.countEntity('B-gene')}
     stems = list(sentence.maskedStems())
@@ -53,7 +53,7 @@ def as_dict(sentence: Sentence, ngrams=2):
     gram = list(stems)
 
     while ngrams > 1:
-        ngrams =- 1
+        ngrams = ngrams - 1
         tokens = Counter('{} {}'.format(s, g) for s, g in zip(stems, gram[1:]))
         d.update(tokens)
 

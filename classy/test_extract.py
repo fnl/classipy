@@ -138,7 +138,7 @@ class TestTransformer(TestCase):
         n = -1
 
         for n, row in enumerate(transformer):
-            self.assertEqual(tuple(unquoted[n]), row)
+            self.assertEqual(list(unquoted[n]), row)
 
         self.assertEqual(1, n)
 
@@ -153,7 +153,7 @@ class TestTransformer(TestCase):
         n = -1
 
         for n, row in enumerate(transformer):
-            self.assertEqual(tuple(unquoted[n]), row)
+            self.assertEqual(list(unquoted[n]), row)
 
         self.assertEqual(1, n)
 
@@ -179,7 +179,7 @@ class TestTransformer(TestCase):
         n = -1
 
         for n, row in enumerate(transformer, 1):
-            self.assertEqual(tuple(data[n]), row)
+            self.assertEqual(list(data[n]), row)
 
         self.assertEqual(2, n)
 
@@ -194,6 +194,6 @@ class TestTransformer(TestCase):
         n = -1
 
         for n, row in enumerate(transformer):
-            self.assertEqual(tuple(data[n]), row)
+            self.assertEqual(list(data[n]), row)
 
         self.assertEqual(0, n)
