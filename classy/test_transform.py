@@ -48,9 +48,9 @@ class TestTransformer(TestCase):
 
     def test_unigram(self):
         expected = TestTransformer.tokensA + TestTransformer.tokensB
-        t = Transformer(Sentinel(), N=1)
+        t = Transformer(Sentinel(), n=1)
         self.assertListEqual(expected,
-                             list(t.ngram(TestTransformer.segments)))
+                             list(t.n_gram(TestTransformer.segments)))
 
     def test_bigram(self):
         expected = TestTransformer.tokensA + [
@@ -58,9 +58,9 @@ class TestTransformer(TestCase):
         ] + TestTransformer.tokensB + [
             'A B', 'B C', 'C .'
         ]
-        t = Transformer(Sentinel(), N=2)
+        t = Transformer(Sentinel(), n=2)
         self.assertListEqual(expected,
-                             list(t.ngram(TestTransformer.segments)))
+                             list(t.n_gram(TestTransformer.segments)))
 
     def test_trigram(self):
         expected = TestTransformer.tokensA + [
@@ -72,15 +72,15 @@ class TestTransformer(TestCase):
         ] + [
             'A B C', 'B C .'
         ]
-        t = Transformer(Sentinel(), N=3)
+        t = Transformer(Sentinel(), n=3)
         self.assertListEqual(expected,
-                             list(t.ngram(TestTransformer.segments)))
+                             list(t.n_gram(TestTransformer.segments)))
 
     def test_unishingle(self):
         expected = []
-        t = Transformer(Sentinel(), K=1)
+        t = Transformer(Sentinel(), k=1)
         self.assertListEqual(expected,
-                             list(t.kshingle(TestTransformer.segments)))
+                             list(t.k_shingle(TestTransformer.segments)))
 
     def test_bishingle(self):
         expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
@@ -88,9 +88,9 @@ class TestTransformer(TestCase):
                     'C_a', 'C_b', 'C_c',
                     'a_b', 'a_c',
                     'b_c']
-        t = Transformer(Sentinel(), K=2)
+        t = Transformer(Sentinel(), k=2)
         self.assertListEqual(expected,
-                             list(t.kshingle(TestTransformer.segments)))
+                             list(t.k_shingle(TestTransformer.segments)))
 
     def test_trishingle(self):
         expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
@@ -102,15 +102,15 @@ class TestTransformer(TestCase):
                     'B_C_a', 'B_C_b', 'B_C_c', 'B_a_b', 'B_a_c', 'B_b_c',
                     'C_a_b', 'C_a_c', 'C_b_c',
                     'a_b_c']
-        t = Transformer(Sentinel(), K=3)
+        t = Transformer(Sentinel(), k=3)
         self.assertListEqual(expected,
-                             list(t.kshingle(TestTransformer.segments)))
+                             list(t.k_shingle(TestTransformer.segments)))
 
     def test_extract(self):
         row = [TestTransformer.segments, []]
         expected = [TestTransformer.tokensA +
                     TestTransformer.tokensB, []]
-        t = Transformer(Sentinel(), N=1)
+        t = Transformer(Sentinel(), n=1)
 
         for i in range(len(row)):
             t._extract(row, i)
@@ -123,7 +123,7 @@ class TestTransformer(TestCase):
         n = -1
         rows = Rows([[1, TestTransformer.segments]] * 3)
 
-        for n, row in enumerate(Transformer(rows, N=1)):
+        for n, row in enumerate(Transformer(rows, n=1)):
             self.assertListEqual(expected, row)
 
         self.assertEqual(2, n)

@@ -9,6 +9,7 @@
 import logging
 import pickle
 import sys
+from classy.data import save_index, save_vocabulary
 from os import path
 from classy.extract import Extractor, row_generator, row_generator_from_file
 from numpy import zeros, diff, ones, cumsum, where
@@ -24,6 +25,13 @@ def generate_data(args):
     index = None
     vocabulary = None
     labels = None if args.no_label else []
+    text_ids = None if args.no_id else []
+
+    if args.annotate:
+        args.annotate = [a - 1 for a in args.annotate]
+
+        if any(a < 0 for a in args.annotate):
+            raise ValueError("not all annotate columns are positive integers")
 
     # LOAD VOCABULARY IF GIVEN
 
@@ -37,15 +45,16 @@ def generate_data(args):
 
     if not args.data:
         gen = row_generator(sys.stdin, dialect=dialect)
-        index, vocabulary, labels = do(gen, args, vocabulary)
+        index, vocabulary, labels, text_ids = do(gen, args, vocabulary)
     else:
         grow = (vocabulary is None)
 
         for file in args.data:
             gen = row_generator_from_file(file, dialect=dialect,
                                           encoding=args.encoding)
-            next_mat, next_vocab, next_lab = do(gen, args, vocabulary,
-                                                grow=grow)
+            next_mat, next_vocab, next_lab, next_ids = do(
+                gen, args, vocabulary, grow=grow
+            )
 
             if grow and vocabulary is not None:
                 new_words = len(next_vocab) - len(vocabulary)
@@ -63,6 +72,9 @@ def generate_data(args):
 
             if labels is not None:
                 labels.extend(next_lab)
+
+            if text_ids is not None:
+                text_ids.extend(next_ids)
 
     index = index.tocsr()
 
@@ -86,25 +98,16 @@ def generate_data(args):
 
     # WRITE VOCABULARY, LABELS, AND INVERTED INDEX
 
-    L.info("index shape: %s vocabulary size: %s", index.shape, len(vocabulary))
-    L.debug("vocabulary: %s", vocabulary.keys())
+    save_index(text_ids, labels, index, args.index)
 
     if args.vocabulary and (args.replace or not path.exists(args.vocabulary)):
-        L.info("writing vocabulary to '%s'", args.vocabulary)
-
-        with open(args.vocabulary, 'wb') as f:
-            pickle.dump(vocabulary, f)
-
-    L.info("writing inverted index to '%s'", args.index)
-
-    with open(args.index, 'wb') as f:
-        pickle.dump([labels, index], f)
+        save_vocabulary(vocabulary, index, args.vocabulary)
 
 
 def do(generator, args, vocab, grow=False):
     stream = Extractor(generator, has_title=args.title,
                        lower=args.lowercase, decap=args.decap)
-    stream = Transformer(stream, N=args.n_grams, K=args.k_shingles)
+    stream = Transformer(stream, n=args.n_grams, k=args.k_shingles)
 
     if args.annotate:
         groups = {i: args.annotate for i in stream.text_columns}
@@ -125,4 +128,6 @@ def do(generator, args, vocab, grow=False):
     stream = FeatureEncoder(stream, vocabulary=vocab, grow_vocab=grow,
                             id_col=id_col, label_col=label_col)
     matrix = stream.make_sparse_matrix()
-    return matrix, stream.vocabulary, stream.labels
+    labels = stream.labels if stream.labels else None
+    text_ids = stream.text_ids if stream.text_ids else None
+    return matrix, stream.vocabulary, labels, text_ids

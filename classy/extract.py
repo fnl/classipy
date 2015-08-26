@@ -60,6 +60,7 @@ class Extractor(Etc):
         super(Extractor, self).__init__()
         L.debug('has_title=%s lower=%s decap=%s', has_title, lower, decap)
         text_columns = list()
+        self._line = 0
 
         if lower:
             self._lower = lambda s: s.lower()
@@ -76,8 +77,10 @@ class Extractor(Etc):
         if has_title:
             self.names = next(row_gen)
             self._curr_row = next(row_gen)
+            self._line += 2
         else:
             self._curr_row = next(row_gen)
+            self._line += 1
             self.names = (str(i + 1) for i in range(len(self._curr_row)))
 
         self._row_len = len(self._curr_row)
@@ -103,12 +106,14 @@ class Extractor(Etc):
         row = self._curr_row
 
         if len(row) != self._row_len:
-            raise IOError('found %d, expected %d columns at line %d:\n%s' % (
-                len(row), self._row_len, self._row_gen.line_num, str(row)
+            msg = 'found %d columns, but expected %d at line %s:\n%s'
+            raise IOError(msg % (
+                len(row), self._row_len, self._line, str(row)
             ))
 
         try:
             self._curr_row = next(self._row_gen)
+            self._line += 1
         except StopIteration:
             self._curr_row = None
 

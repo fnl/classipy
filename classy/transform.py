@@ -21,6 +21,7 @@ L = logging.getLogger(__name__)
 # scikit-learn strategy - see
 # https://github.com/scikit-learn/scikit-learn/blob/a95203b/sklearn/feature_extraction/text.py#L724
 
+
 class Transformer(Etc):
 
     """
@@ -29,19 +30,19 @@ class Transformer(Etc):
     list.
     """
 
-    def __init__(self, extractor, N=2, K=1):
+    def __init__(self, extractor, n=2, k=1):
         """
         :param extractor: the input Extractor stream
-        :param N: the size of the n-grams to produce
+        :param n: the size of the n-grams to produce
                   (``1`` implies unigrams only)
-        :param K: the size of the k-shingles to produce
+        :param k: the size of the k-shingles to produce
                   (``1`` implies no shingling)
         """
         super(Transformer, self).__init__(extractor)
-        L.debug("N=%s, K=%s", N, K)
+        L.debug("N=%s, K=%s", n, k)
         self.rows = iter(extractor)
-        self.N = int(N)
-        self.K = int(K)
+        self.N = int(n)
+        self.K = int(k)
 
         if self.N < 1:
             raise ValueError("N not a positive number")
@@ -57,11 +58,11 @@ class Transformer(Etc):
             yield row
 
     def _extract(self, row, i):
-        ngrams = self.ngram(row[i])
-        shingles = self.kshingle(row[i])
-        row[i] = list(itertools.chain(ngrams, shingles))
+        n_grams = self.n_gram(row[i])
+        shingles = self.k_shingle(row[i])
+        row[i] = list(itertools.chain(n_grams, shingles))
 
-    def ngram(self, token_segments):
+    def n_gram(self, token_segments):
         """
         Yield consecutive n-grams from all ``token_segments``.
         The n-gram size, ``N``, is configured at instance level.
@@ -69,14 +70,14 @@ class Transformer(Etc):
         :param token_segments: a list of a list of strings (tokens)
         :return: a n-gram generator; tokens are joined by space (`` ``).
         """
-        N = range(1, self.N + 1)
+        ns = range(1, self.N + 1)
 
         for segment in token_segments:
-            for n in N:
+            for n in ns:
                 for i in range(len(segment) - n + 1):
                     yield " ".join(segment[i:i + n])
 
-    def kshingle(self, token_segments):
+    def k_shingle(self, token_segments):
         """
         Yield unique k-shingles by creating all possible combinations of
         unique words (tokens) in ``token_segments``.
@@ -212,7 +213,7 @@ class FeatureEncoder(Etc):
         """
         super(FeatureEncoder, self).__init__(transformer)
         L.debug("vocabulary=%s grow=%s id_col=%s label_col=%s",
-                "NO" if vocabulary is None else "YES",
+                "None" if vocabulary is None else len(vocabulary),
                 grow_vocab, id_col, label_col)
         self.rows = iter(transformer)
         self.id_col = None if id_col is None else int(id_col)
@@ -231,27 +232,27 @@ class FeatureEncoder(Etc):
             for token in row[col]:
                 yield template.format(name, token)
 
-    def _singlerow_token_generator(self, row):
+    def _unirow_token_generator(self, row):
         yield from row[self.text_columns[0]]
 
     def make_sparse_matrix(self):
         indices = array('L')
-        indptr = array('L')
-        indptr.append(0)
+        pointers = array('L')
+        pointers.append(0)
         self.text_ids = []
         self.labels = []
 
         if self.vocabulary is None or self._grow:
-            V = defaultdict(int)
-            V.default_factory = V.__len__
+            vocab = defaultdict(int)
+            vocab.default_factory = vocab.__len__
 
             if self._grow and self.vocabulary is not None:
-                V.update(self.vocabulary)
+                vocab.update(self.vocabulary)
         else:
-            V = self.vocabulary
+            vocab = self.vocabulary
 
         if len(self.text_columns) == 1:
-            token_generator = self._singlerow_token_generator
+            token_generator = self._unirow_token_generator
         else:
             token_generator = self._multirow_token_generator
 
@@ -264,17 +265,17 @@ class FeatureEncoder(Etc):
 
             for t in token_generator(row):
                 try:
-                    indices.append(V[t])
+                    indices.append(vocab[t])
                 except KeyError:
                     pass  # ignore features not found in the vocabulary
 
-            indptr.append(len(indices))
+            pointers.append(len(indices))
 
         if self.vocabulary is None or self._grow:
-            self.vocabulary = dict(V)
+            self.vocabulary = dict(vocab)
 
-        matrix = csr_matrix((ones(len(indices)), indices, indptr),
-                            shape=(len(indptr) - 1, len(V)),
+        matrix = csr_matrix((ones(len(indices)), indices, pointers),
+                            shape=(len(pointers) - 1, len(vocab)),
                             dtype=int32)
         matrix.sum_duplicates()
         return matrix
