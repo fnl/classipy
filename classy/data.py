@@ -5,74 +5,110 @@
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
+from collections import namedtuple, Counter
 
 import logging
 import pickle
 from numpy.core.umath import isfinite
-from numpy import typecodes, asarray
+from numpy import typecodes, asarray, unique, where
+from sklearn.preprocessing import label_binarize
 
 L = logging.getLogger(__name__)
+Data = namedtuple('Data', 'text_ids index labels label_names min_label')
 
 
-def check_shapes(doc_ids, index, labels):
-    L.info("index shape: %s doc_ids: %s, labels: %s", index.shape,
-           'None' if doc_ids is None else len(doc_ids),
-           'None' if labels is None else len(labels))
-
-    if doc_ids is not None and labels is not None:
-        if len(doc_ids) != len(labels):
-            msg = 'length of IDs (%d) != length of labels (%d)'
-            raise ValueError(msg % (len(doc_ids), len(labels)))
-
-    if doc_ids is not None:
-        if len(doc_ids) != index.shape[0]:
-            msg = 'length of IDs (%d) != number of index rows (%d)'
-            raise ValueError(msg % (len(doc_ids), index.shape[0]))
-
+def make_data(inverted_index, text_ids=None, labels=None):
     if labels is not None:
-        if len(labels) != index.shape[0]:
+        labels = asarray(labels, str)
+        # noinspection PyTupleAssignmentBalance
+        uniq, inverse = unique(labels, return_inverse=True)
+        n_classes = len(uniq)
+        min_label = Counter(labels).most_common()[-1][0]
+        min_label = where(uniq == min_label)[0][0]
+
+        if n_classes == 1:
+            L.warn("only one target label", uniq[0])
+        elif n_classes > 2:
+            labels = label_binarize(labels, classes=uniq)
+        else:
+            labels = inverse
+
+        print('ordered labels:', ', '.join(uniq))
+    else:
+        uniq, min_label = None, None
+
+    return Data(text_ids, inverted_index.tocsr(), labels, uniq, min_label)
+
+
+def get_n_rows(data):
+    return data.index.shape[0]
+
+
+def get_n_cols(data):
+    return data.index.shape[1]
+
+
+def check_integrity(data):
+    L.info("index shape: %s doc_ids: %s, labels: %s", data.index.shape,
+           'None' if data.text_ids is None else len(data.text_ids),
+           'None' if data.labels is None else len(data.labels))
+    rows = get_n_rows(data)
+
+    if data.text_ids is not None and data.labels is not None:
+        if len(data.text_ids) != len(data.labels):
+            msg = 'length of IDs (%d) != length of labels (%d)'
+            raise ValueError(msg % (len(data.text_ids), len(data.labels)))
+
+    if data.text_ids is not None:
+        if len(data.text_ids) != rows:
+            msg = 'length of IDs (%d) != number of index rows (%d)'
+            raise ValueError(msg % (len(data.text_id), rows))
+
+    if data.labels is not None:
+        if len(data.labels) != rows:
             msg = 'length of labels (%d) != number of index rows (%d)'
-            raise ValueError(msg % (len(labels), len(index.shape[0])))
+            raise ValueError(msg % (len(data.labels), rows))
 
-    if index.dtype.char in typecodes['AllFloat'] and \
-            not isfinite(index.sum()) and \
-            not isfinite(index).all():
+    if data.index.dtype.char in typecodes['AllFloat'] and \
+            not isfinite(data.index.sum()) and \
+            not isfinite(data.index).all():
         raise ValueError("index contains NaN, infinity"
-                         " or a value too large for %r." % index.dtype)
+                         " or a value too large for %r." % data.index.dtype)
 
 
-def save_index(doc_ids, labels, index, path):
-    check_shapes(doc_ids, index, labels)
+def save_index(data, path):
+    check_integrity(data)
     L.info("saving inverted index to '%s'", path)
 
     with open(path, 'wb') as f:
-        pickle.dump([doc_ids, asarray(labels, str), index], f)
+        pickle.dump(data, f)
 
 
 def load_index(path):
     L.info("loading inverted index from '%s'", path)
 
     with open(path, 'rb') as f:
-        doc_ids, labels, index = pickle.load(f)
+        data = pickle.load(f)
 
-    check_shapes(doc_ids, index, labels)
-    return doc_ids, labels, index
+    check_integrity(data)
+    return data
 
 
-def save_vocabulary(vocabulary, index, path):
+def save_vocabulary(vocabulary, data, path):
     L.info(" vocabulary size: %s", len(vocabulary))
     L.debug("vocabulary: %s", vocabulary.keys())
     L.info("saving vocabulary to '%s'", path)
+    n_cols = get_n_cols(data)
 
-    if len(vocabulary) != index.shape[1]:
+    if len(vocabulary) != n_cols:
         msg = 'length of vocabulary (%d) != number of index columns (%d)'
-        raise ValueError(msg % (len(vocabulary), index.shape[1]))
+        raise ValueError(msg % (len(vocabulary), n_cols))
 
     with open(path, 'wb') as f:
         pickle.dump(vocabulary, f)
 
 
-def load_vocabulary(path, index):
+def load_vocabulary(path, data=None):
     L.info("loading vocabulary from '%s'", path)
 
     with open(path, 'rb') as f:
@@ -80,8 +116,11 @@ def load_vocabulary(path, index):
 
     L.info(" vocabulary size: %s", len(vocabulary))
 
-    if len(vocabulary) != index.shape[1]:
-        msg = 'length of vocabulary (%d) != number of index columns (%d)'
-        raise ValueError(msg % (len(vocabulary), index.shape[1]))
+    if data is not None:
+        n_cols = get_n_cols(data)
+
+        if len(vocabulary) != n_cols:
+            msg = 'length of vocabulary (%d) != number of index columns (%d)'
+            raise ValueError(msg % (len(vocabulary), n_cols))
 
     return vocabulary

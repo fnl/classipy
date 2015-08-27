@@ -7,8 +7,10 @@
 """
 
 import logging
+from numpy.random.mtrand import choice
 from classy.classifiers import build
-from classy.data import load_index
+from classy.data import load_index, load_vocabulary
+from numpy import argsort, array
 from sklearn import metrics
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -23,27 +25,56 @@ Scorer = metrics.make_scorer(metrics.matthews_corrcoef)
 
 def learn_model(args):
     L.debug("%s", args)
-    pipeline = []
-    classy, params = build(args.classifier)
-
-    if args.tfidf:
-        pipeline.append(('transform', tfidf_transform(params)))
-
-    pipeline.append(('classifier', classy))
-    pipeline = Pipeline(pipeline)
-    doc_ids, labels, index = load_index(args.index)
+    pipeline, parameters, data = make_pipeline(args)
 
     if args.grid_search:
-        pipeline = grid_search(pipeline, params, index, labels)
+        pipeline = grid_search(pipeline, parameters, data)
 
-    pipeline.fit(index, labels)
+    pipeline.fit(data.index, data.labels)
     joblib.dump(pipeline, args.model)
 
+    if args.vocabulary:
+        voc = load_vocabulary(args.vocabulary, data)
+        cov = array(list(voc.keys()))
 
-def grid_search(pipeline, params, index, labels):
+        for word, idx in voc.items():
+            cov[idx] = word
+
+        L.debug("vocabulary sample: %s", ', '.join(choice(cov, min(len(voc), 10))))
+        classifier = pipeline._final_estimator
+        L.debug("classifier coefficients shape: %s", classifier.coef_.shape)
+
+        for i in range(classifier.coef_.shape[0]):
+            top_n = argsort(classifier.coef_[i])[:10]
+            worst_n = argsort(classifier.coef_[i])[-10:][::-1]
+            print('label {2} features (top-worst): "{0}", ... "{1}"'.format(
+                '", "'.join(cov[top_n]),
+                '", "'.join(cov[worst_n]), data.label_names[i],
+            ))
+
+
+def make_pipeline(args):
+    pipeline = []
+    data = load_index(args.index)
+
+    if data.labels is None or len(data.labels) == 0:
+        raise RuntimeError("input data has no labels to learn from")
+
+    classifier, parameters = build(args.classifier, data)
+
+    if args.tfidf:
+        pipeline.append(('transform', tfidf_transform(parameters)))
+
+    pipeline.append(('classifier', classifier))
+    pipeline = Pipeline(pipeline)
+
+    return pipeline, parameters, data
+
+
+def grid_search(pipeline, params, data):
     grid = GridSearchCV(pipeline, params, scoring=Scorer,
-                        cv=5, refit=True, n_jobs=4, verbose=1)
-    grid.fit(index, labels)
+                        cv=5, refit=True, n_jobs=-1, verbose=1)
+    grid.fit(data.index, data.labels)
     print("Best score:", grid.best_score_)
     print("Parameters:")
 

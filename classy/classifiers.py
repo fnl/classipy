@@ -7,18 +7,24 @@
 """
 
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.svm import LinearSVC
 
 CLASSIFIER = {}
 
 
-def build(option):
+def build(option, data):
     try:
-        return CLASSIFIER[option]()
+        classy = CLASSIFIER[option]()
     except KeyError:
-        msg = 'unknown classifier {}'.format(args.classifier)
-        raise RuntimeError(msg)
+        msg = 'unknown classifier {}'
+        raise RuntimeError(msg.format(option))
+
+    if len(data.label_names) > 2:
+        return OneVsRestClassifier(classy, n_jobs=-1)
+    else:
+        return classy
 
 
 def ridge():

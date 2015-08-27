@@ -17,6 +17,7 @@ class Sentinel(Etc):
 class Rows(Etc):
 
     def __init__(self, rows=None):
+        super(Rows, self).__init__()
         self.text_columns = self.text_columns = (1,)
         self.names = ("id", "text", "attribute", "label")
         self.rows = rows
@@ -186,8 +187,7 @@ class TestAnnotationTransformer(TestCase):
         rows = Rows()
         groups = TestAnnotationTransformer.groups
         self.assertRaisesRegex(RuntimeError,
-                               r"names=\('id', 'text', 'attribute', 'label'\), "
-                               r"dropped_columns=\(3, 4\); illegal dropped columns index\?",
+                               r"names=\('id', 'text', 'attribute', 'label'\), dropped_columns=\(3, 4\); illegal dropped columns index\?",
                                AnnotationTransformer, rows, groups, 3, 4)
 
 

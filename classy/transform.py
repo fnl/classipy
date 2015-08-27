@@ -11,7 +11,7 @@ import logging
 from classy.etbase import Etc
 from scipy.sparse import csr_matrix
 from collections import defaultdict
-from numpy import int32, ones
+from numpy import int32, ones, zeros
 import itertools
 
 L = logging.getLogger(__name__)
@@ -234,6 +234,29 @@ class FeatureEncoder(Etc):
 
     def _unirow_token_generator(self, row):
         yield from row[self.text_columns[0]]
+
+    def __iter__(self):
+        vocab = self.vocabulary
+        assert vocab is not None, "cannot stream without a vocabulary"
+        n_features = len(vocab)
+
+        if len(self.text_columns) == 1:
+            token_generator = self._unirow_token_generator
+        else:
+            token_generator = self._multirow_token_generator
+
+        for rno, row in enumerate(self.rows):
+            text_id = rno + 1 if self.id_col is None else row[self.id_col]
+            feature_array = zeros((1, n_features), dtype=int32)
+
+            for token in token_generator(row):
+                try:
+                    feature_array[0, vocab[token]] += 1
+                except KeyError:
+                    pass  # ignore unseen vocabulary
+
+            yield text_id, feature_array
+
 
     def make_sparse_matrix(self):
         indices = array('L')
