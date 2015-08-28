@@ -7,7 +7,6 @@
 """
 
 import logging
-from numpy.random.mtrand import choice
 from classy.classifiers import build
 from classy.data import load_index, load_vocabulary
 from numpy import argsort, array
@@ -40,7 +39,6 @@ def learn_model(args):
         for word, idx in voc.items():
             cov[idx] = word
 
-        L.debug("vocabulary sample: %s", ', '.join(choice(cov, min(len(voc), 10))))
         classifier = pipeline._final_estimator
         L.debug("classifier coefficients shape: %s", classifier.coef_.shape)
 

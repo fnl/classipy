@@ -237,7 +237,12 @@ class FeatureEncoder(Etc):
 
     def __iter__(self):
         vocab = self.vocabulary
-        assert vocab is not None, "cannot stream without a vocabulary"
+
+        if vocab is None:
+            raise AttributeError(
+                "cannot stream-transform without a vocabulary"
+            )
+
         n_features = len(vocab)
 
         if len(self.text_columns) == 1:
@@ -245,17 +250,17 @@ class FeatureEncoder(Etc):
         else:
             token_generator = self._multirow_token_generator
 
-        for rno, row in enumerate(self.rows):
-            text_id = rno + 1 if self.id_col is None else row[self.id_col]
-            feature_array = zeros((1, n_features), dtype=int32)
+        for line, row in enumerate(self.rows):
+            text_id = line + 1 if self.id_col is None else row[self.id_col]
+            feature_counts = zeros(n_features, dtype=int32)
 
             for token in token_generator(row):
                 try:
-                    feature_array[0, vocab[token]] += 1
+                    feature_counts[vocab[token]] += 1
                 except KeyError:
-                    pass  # ignore unseen vocabulary
+                    pass  # ignore features not in the vocabulary
 
-            yield text_id, feature_array
+            yield text_id, feature_counts.T  # transpose to document array
 
 
     def make_sparse_matrix(self):
@@ -290,7 +295,7 @@ class FeatureEncoder(Etc):
                 try:
                     indices.append(vocab[t])
                 except KeyError:
-                    pass  # ignore features not found in the vocabulary
+                    pass  # ignore features not in the vocabulary
 
             pointers.append(len(indices))
 

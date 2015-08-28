@@ -8,6 +8,7 @@
 
 import logging
 import sys
+import itertools
 from classy.data import load_index, get_n_rows, load_vocabulary
 from classy.extract import row_generator, row_generator_from_file, Extractor
 from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
@@ -26,7 +27,13 @@ def predict_labels(args):
 
 
 def batch_predictor(args):
+    if not args.index:
+        raise ValueError('missing input data file (inverted index)')
+    elif len(args.index) > 1:
+        raise ValueError('more than one input data file (inverted index)')
+
     data = load_index(args.index[0])
+    scores = None
 
     if data.labels is None or len(data.labels) == 0:
         raise RuntimeError("input data has no labels to learn from")
@@ -34,18 +41,34 @@ def batch_predictor(args):
     pipeline = joblib.load(args.model)
     predictions = pipeline.predict(data.index)
 
+    if args.scores:
+        try:
+            scores = pipeline.predict_proba(data.index)
+        except AttributeError:  # svm and other do not have this
+            scores = pipeline.decision_function(data.index)
+
     if data.text_ids:
         text_ids = data.text_ids
     else:
         text_ids = range(1, get_n_rows(data) + 1)
 
-    for text_id, prediction in zip(text_ids, predictions):
-        print(text_id, data.label_names[prediction], sep='\t')
+    if args.scores:
+        for text_id, prediction, i_scores in zip(text_ids, predictions, scores):
+            if isinstance(i_scores, float):
+                i_scores = (i_scores,)
+
+            score_str = '\t'.join('{: 0.8f}'.format(s) for s in i_scores)
+            print(text_id, data.label_names[prediction], score_str, sep='\t')
+    else:
+        for text_id, prediction in zip(text_ids, predictions):
+            print(text_id, data.label_names[prediction], sep='\t')
 
 
 def stream_predictor(args):
     if args.vocabulary is None:
-        args.error('missing required option for text input: --vocabulary VOCAB')
+        raise ValueError(
+            'missing required option for text input: --vocabulary VOCAB'
+        )
 
     vocabulary = load_vocabulary(args.vocabulary)
     dialect = 'excel' if args.csv else 'plain'
@@ -88,11 +111,31 @@ def predict_from(text, args, vocab):
                             id_col=id_col, label_col=None)
     pipeline = joblib.load(args.model)
     make_label = str
+    here = '\t' if args.scores else '\n'  # append score or not
+    no_proba = False
 
     if args.label:
         n_labels = len(args.label)
         make_label = lambda i: args.label[i] if i < n_labels else i
 
     for text_id, features in stream:
-        prediction = pipeline.predict(features)[0]
-        print(text_id, make_label(prediction), sep='\t')
+        prediction = pipeline.predict(features)
+        assert prediction.shape[0] == 1, "not a single prediction: %s" % str(
+            prediction.shape
+        )
+        print(text_id, make_label(prediction[0]), sep='\t', end=here)
+
+        if args.scores:
+            if no_proba:
+                scores = pipeline.decision_function(features)[0]
+            else:
+                try:
+                    scores = pipeline.predict_proba(features)[0]
+                except AttributeError:  # svm and other do not have this
+                    scores = pipeline.decision_function(features)[0]
+                    no_proba = True
+
+            if isinstance(scores, float):
+                scores = (scores,)
+
+            print('\t'.join('{: 0.8f}'.format(s) for s in scores))

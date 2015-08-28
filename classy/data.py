@@ -5,6 +5,7 @@
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
+from random import sample
 from collections import namedtuple, Counter
 
 import logging
@@ -18,6 +19,24 @@ Data = namedtuple('Data', 'text_ids index labels label_names min_label')
 
 
 def make_data(inverted_index, text_ids=None, labels=None):
+    """
+    Create a namedtuple "Data" with the following properties:
+
+    - ``text_ids``: a list of document IDs (or None)
+    - ``index``: the actual, inverted index (as SciPy CSR matrix)
+    - ``labels``: a (binarized) array of document labels, as integers (or None)
+    - ``label_names``: the list of label names per 0-based label integer
+    - ``min_label``: the label integer that has the least number of examples
+                     in the dataset (i.e., the likely hardest label to learn)
+
+    :param inverted_index: the inverted index; having a ``tocsr()`` method
+    :param text_ids: the list of document IDs (or None)
+    :param labels: the list of document labels (or None)
+    :return: a Data namedtuple
+    """
+    if text_ids is not None and not isinstance(text_ids, list):
+        text_ids = list(text_ids)
+
     if labels is not None:
         labels = asarray(labels, str)
         # noinspection PyTupleAssignmentBalance
@@ -41,14 +60,17 @@ def make_data(inverted_index, text_ids=None, labels=None):
 
 
 def get_n_rows(data):
+    """Get the number of rows/documents in ``data``."""
     return data.index.shape[0]
 
 
 def get_n_cols(data):
+    """Get the number of columns/features (words) in ``data``."""
     return data.index.shape[1]
 
 
 def check_integrity(data):
+    """Ensure the semantic integrity of the ``data``."""
     L.info("index shape: %s doc_ids: %s, labels: %s", data.index.shape,
            'None' if data.text_ids is None else len(data.text_ids),
            'None' if data.labels is None else len(data.labels))
@@ -77,6 +99,7 @@ def check_integrity(data):
 
 
 def save_index(data, path):
+    """Save the ``data`` to ``path``."""
     check_integrity(data)
     L.info("saving inverted index to '%s'", path)
 
@@ -85,6 +108,7 @@ def save_index(data, path):
 
 
 def load_index(path):
+    """Load a Data structure from ``path``."""
     L.info("loading inverted index from '%s'", path)
 
     with open(path, 'rb') as f:
@@ -95,8 +119,12 @@ def load_index(path):
 
 
 def save_vocabulary(vocabulary, data, path):
-    L.info(" vocabulary size: %s", len(vocabulary))
-    L.debug("vocabulary: %s", vocabulary.keys())
+    """Save the ``vocabulary`` dict for ``data`` to ``path``."""
+    assert isinstance(vocabulary, dict), "vocabulary not a dict"
+    size = len(vocabulary)
+    L.info("vocabulary size: %s", size)
+    rnd_sample = sample(vocabulary.keys(), min(size, 10))
+    L.debug("vocabulary sample: %s", ', '.join(rnd_sample))
     L.info("saving vocabulary to '%s'", path)
     n_cols = get_n_cols(data)
 
@@ -109,12 +137,20 @@ def save_vocabulary(vocabulary, data, path):
 
 
 def load_vocabulary(path, data=None):
+    """
+    Load a vocabulary dict from ``path``,
+    optionally ensuring it could be appropriate for ``data``.
+    """
     L.info("loading vocabulary from '%s'", path)
 
     with open(path, 'rb') as f:
         vocabulary = pickle.load(f)
 
-    L.info(" vocabulary size: %s", len(vocabulary))
+    assert isinstance(vocabulary, dict), "vocabulary not a dict"
+    size = len(vocabulary)
+    L.info(" vocabulary size: %s", size)
+    rnd_sample = sample(vocabulary.keys(), min(size, 10))
+    L.debug("vocabulary sample: %s", ', '.join(rnd_sample))
 
     if data is not None:
         n_cols = get_n_cols(data)

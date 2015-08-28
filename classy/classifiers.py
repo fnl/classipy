@@ -11,12 +11,12 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.svm import LinearSVC
 
-CLASSIFIER = {}
+CLASSIFIERS = {}
 
 
 def build(option, data):
     try:
-        classy = CLASSIFIER[option]()
+        classy = CLASSIFIERS[option]()
     except KeyError:
         msg = 'unknown classifier {}'
         raise RuntimeError(msg.format(option))
@@ -28,54 +28,56 @@ def build(option, data):
 
 
 def ridge():
-    return RidgeClassifier(), {
-        'classifier__alpha': [10., 1., 0., .1, .01],
+    return RidgeClassifier(max_iter=1e4), {
+        'classifier__alpha': [100., 10., 1., .1, .01, .001],
         'classifier__normalize': [True, False],
+        'classifier__class_weight': ['auto', None],
         'classifier__solver': ['svd', 'cholesky', 'lsqr', 'sparse_cg'],
         'classifier__tol': [.1, .01, 1e-3, 1e-6],
     }
 
-CLASSIFIER[ridge.__name__] = ridge
+CLASSIFIERS[ridge.__name__] = ridge
 
 
 def svm():
-    return LinearSVC(loss='hinge'), {
+    return LinearSVC(loss='hinge', max_iter=1e4), {
         # Hinge loss is generally considered the better choice for sparse data
-        'classifier__C': [100., 10., 1., .1, .01],
+        'classifier__C': [1000., 100., 10., 1., .1, .01],
+        'classifier__loss': ['hinge', 'squared_hinge'],
+        # 'classifier__dual': [True, False],  # doesn't mix...
         'classifier__class_weight': ['auto', None],
-        'classifier__intercept_scaling': [10., 5., 1., .5],
+        'classifier__intercept_scaling': [10., 5., 1., .5, .1],
         'classifier__tol': [.1, .01, 1e-4, 1e-8],
     }
 
-CLASSIFIER[svm.__name__] = svm
+CLASSIFIERS[svm.__name__] = svm
 
 
 def maxent():
-    return LogisticRegression(class_weight='auto'), {
-        'classifier__C': [100., 10., 1., .1, .01],
+    return LogisticRegression(class_weight='auto', max_iter=1e4), {
+        'classifier__C': [1000., 100., 10., 1., .1, .01],
         'classifier__class_weight': ['auto', None],
         'classifier__intercept_scaling': [10., 5., 1., .5],
         'classifier__penalty': ['l1', 'l2'],
         'classifier__tol': [.1, .01, 1e-4, 1e-8],
     }
 
-CLASSIFIER[maxent.__name__] = maxent
+CLASSIFIERS[maxent.__name__] = maxent
 
 
 def multinomial():
     return MultinomialNB(), {
-        'classifier__alpha': [10., 1., 0., .1, .01],
+        'classifier__alpha': [10., 1., 0., .1, .01, .001],
         'classifier__fit_prior': [True, False],
     }
 
-CLASSIFIER[multinomial.__name__] = multinomial
+CLASSIFIERS[multinomial.__name__] = multinomial
 
 
 def bernoulli():
     return BernoulliNB(), {
-        'classifier__alpha': [10., 1., 0., .1, .01],
-        'classifier__binarize': [True, False],
+        'classifier__alpha': [10., 1., 0., .1, .01, .001],
         'classifier__fit_prior': [True, False],
     }
 
-CLASSIFIER[bernoulli.__name__] = bernoulli
+CLASSIFIERS[bernoulli.__name__] = bernoulli
