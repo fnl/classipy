@@ -27,7 +27,7 @@ def learn_model(args):
     pipeline, parameters, data = make_pipeline(args)
 
     if args.grid_search:
-        pipeline = grid_search(pipeline, parameters, data)
+        pipeline = grid_search(pipeline, parameters, data, args.jobs)
 
     pipeline.fit(data.index, data.labels)
     joblib.dump(pipeline, args.model)
@@ -58,7 +58,7 @@ def make_pipeline(args):
     if data.labels is None or len(data.labels) == 0:
         raise RuntimeError("input data has no labels to learn from")
 
-    classifier, parameters = build(args.classifier, data)
+    classifier, parameters = build(args.classifier, data, args.jobs)
 
     if args.tfidf:
         pipeline.append(('transform', tfidf_transform(parameters)))
@@ -69,9 +69,9 @@ def make_pipeline(args):
     return pipeline, parameters, data
 
 
-def grid_search(pipeline, params, data):
+def grid_search(pipeline, params, data, jobs=-1):
     grid = GridSearchCV(pipeline, params, scoring=Scorer,
-                        cv=5, refit=True, n_jobs=-1, verbose=1)
+                        cv=5, refit=True, n_jobs=jobs, verbose=1)
     grid.fit(data.index, data.labels)
     print("Best score:", grid.best_score_)
     print("Parameters:")
