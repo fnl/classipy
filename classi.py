@@ -6,8 +6,9 @@
 
 import argparse
 import logging
-from classy import CLASSIFIERS, generate_data, learn_model, evaluate_model, predict_labels
-from classy.data import load_index
+from classy import CLASSIFIERS, print_labels, \
+    generate_data, select_features, learn_model, evaluate_model, predict_labels
+
 
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"
 __verison__ = "1.0"
@@ -42,9 +43,16 @@ generate.add_argument("--label-first", action='store_true', help='the nominal cl
 generate.add_argument("--label-second", action='store_true', help='the nominal class label is the second instead of the last column')
 generate.add_argument("--no-label", action='store_true', help='there is no label column present (data used only for predictions)')
 generate.add_argument("--no-id", action='store_true', help='the first (second if label first) column is not an ID column')
-generate.add_argument("--cutoff", '-c', default=3, type=int, help="min. doc. frequency required to use a feature; value must be a positive integer;  (default=%(default)s - only use features seen at least in 3 documents); only has an effect if a new vocabulary is (re-) generated")
-generate.add_argument("--select", '-s', metavar='K', type=int, help="only select the K best features using a chi-square test")
 generate.set_defaults(func=generate_data)
+
+select = commands.add_parser('select', help='feature selection to reduce the index and vocabulary size', aliases=['s', 'se', 'sel', 'sele', 'selec'])
+select.add_argument('index', metavar='IN_INDEX', help="the inverted index to prune")
+select.add_argument('new_index', metavar='OUT_INDEX', help="the reduced index to write")
+select.add_argument('new_vocabulary', metavar='OUT_VOCAB', nargs='?', help="the reduced vocabulary to write (if the original one is given)")
+select.add_argument("--cutoff", '-c', default=3, type=int, help="drop features below a min. document frequency; value must be a positive integer (default=%(default)s - only use features seen at least in %(default)s documents)")
+select.add_argument("--select", '-s', default=0, metavar='K', type=int, help="select the K best features using a chi-square test; value must be a positive integer (default: keep all features)")
+select.set_defaults(func=select_features)
+
 
 learn = commands.add_parser('learn', help='a model from inverted index data', aliases=['l', 'le', 'lea', 'lear'])
 learn.add_argument('index', metavar='INDEX', help="inverted index input file")
@@ -84,9 +92,9 @@ predict_text.add_argument("--id-last", action='store_true', help='the text ID is
 predict_text.add_argument("--no-id", action='store_true', help='the input has no ID column')
 predict.set_defaults(func=predict_labels)
 
-predict = commands.add_parser('labels', help='list all label names (classes) in a (labeled) index file')
-predict.add_argument('index', metavar='INDEX', help="inverted index file")
-predict.set_defaults(func=lambda a: print(', '.join(load_index(a.index).label_names)))
+labels = commands.add_parser('labels', help='list all label names (classes) in a (labeled) index file')
+labels.add_argument('index', metavar='INDEX', help="inverted index file")
+labels.set_defaults(func=print_labels)
 
 
 # Argument Parsing
