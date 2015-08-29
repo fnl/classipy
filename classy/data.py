@@ -5,14 +5,14 @@
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
-from random import sample
-from collections import namedtuple, Counter
 
 import logging
 import pickle
 from numpy.core.umath import isfinite
 from numpy import typecodes, asarray, unique, where
 from sklearn.preprocessing import label_binarize
+from random import sample
+from collections import namedtuple, Counter
 
 L = logging.getLogger(__name__)
 Data = namedtuple('Data', 'text_ids index labels label_names min_label')

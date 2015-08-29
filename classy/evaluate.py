@@ -1,13 +1,13 @@
 """
-.. py:module:: classy.generate
+.. py:module:: classy.evaluate
    :synopsis: Evaluate a classifier against an inverted index.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
-from collections import Counter
 
 import logging
+from collections import Counter
 from classy.data import load_index
 from classy.learn import make_pipeline
 from sklearn.cross_validation import StratifiedKFold

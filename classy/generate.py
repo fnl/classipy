@@ -9,16 +9,22 @@
 import logging
 import sys
 from classy.data import save_index, save_vocabulary, make_data, load_vocabulary
-from os import path
 from classy.extract import Extractor, row_generator, row_generator_from_file
-from numpy import zeros, diff, ones, cumsum, where
 from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
+from os import path
+from numpy import zeros, diff, ones, cumsum, where
 from scipy.sparse import vstack, hstack, csc_matrix
 
 L = logging.getLogger(__name__)
 
 
 def generate_data(args):
+    """
+    Command: generate
+
+    :param args: command-line arguments
+    :raise ValueError: illegal --annotate column indexes
+    """
     L.debug("%s", args)
 
     if args.vocabulary and not args.replace and path.exists(args.vocabulary):
@@ -51,6 +57,8 @@ def parse_stdin(args, vocabulary):
     Keep reading from STDIN until the stream ends,
     building the index and vocabulary.
 
+    :param args: command-line arguments
+    :param vocabulary: a vocabulary dictionary
     :return: a new Data structure and the vocabulary
     """
     dialect = 'excel' if args.csv else 'plain'
@@ -64,6 +72,8 @@ def parse_files(args, vocabulary):
     Build an index, possibly from multiple files
     via iterative expansions of the index and vocabulary per file.
 
+    :param args: command-line arguments
+    :param vocabulary: a vocabulary dictionary
     :return: a new Data structure and the vocabulary
     """
     dialect = 'excel' if args.csv else 'plain'

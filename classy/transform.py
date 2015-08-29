@@ -1,23 +1,21 @@
 """
-.. py:module::  classy.transform
+.. py:module:: classy.transform
    :synopsis: Transform text and additional features into sparse matrices.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
 
-from array import array
 import logging
+import itertools
+from array import array
 from classy.etbase import Etc
 from scipy.sparse import csr_matrix
 from collections import defaultdict
 from numpy import int32, ones, zeros
-import itertools
 
 L = logging.getLogger(__name__)
-# Create sparse matrix with scipy:
-# scipy.sparse.csr_matrix - see
-# http://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.sparse.csr_matrix.html
+
 # scikit-learn strategy - see
 # https://github.com/scikit-learn/scikit-learn/blob/a95203b/sklearn/feature_extraction/text.py#L724
 

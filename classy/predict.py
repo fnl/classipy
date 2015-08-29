@@ -8,7 +8,6 @@
 
 import logging
 import sys
-import itertools
 from classy.data import load_index, get_n_rows, load_vocabulary
 from classy.extract import row_generator, row_generator_from_file, Extractor
 from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
