@@ -278,8 +278,11 @@ class FeatureEncoder(Etc):
             vocab = self.vocabulary
 
         if len(self.text_columns) == 1:
+            L.debug("generating tokens from column '%s'", self.names[self.text_columns[0]])
             token_generator = self._unirow_token_generator
         else:
+            L.debug("generating tokens from columns: '%s'",
+                    "', '".join(self.names[c] for c in self.text_columns))
             token_generator = self._multirow_token_generator
 
         for row in self.rows:

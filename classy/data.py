@@ -52,7 +52,7 @@ def make_data(inverted_index, text_ids=None, labels=None):
         else:
             labels = inverse
 
-        print('ordered labels:', ', '.join(uniq))
+        print('ordered labels:', "'{}'".format("', '".join(uniq)))
     else:
         uniq, min_label = None, None
 
@@ -123,7 +123,7 @@ def save_vocabulary(vocabulary, data, path):
     assert isinstance(vocabulary, dict), "vocabulary not a dict"
     size = len(vocabulary)
     L.info("vocabulary size: %s", size)
-    rnd_sample = sample(vocabulary.keys(), min(size, 10))
+    rnd_sample = sample(vocabulary.keys(), min(size, 50))
     L.debug("vocabulary sample: %s", ', '.join(rnd_sample))
     L.info("saving vocabulary to '%s'", path)
     n_cols = get_n_cols(data)
