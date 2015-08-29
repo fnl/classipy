@@ -8,11 +8,12 @@
 
 import logging
 import sys
+from sklearn.feature_selection import SelectKBest, chi2
 from classy.data import save_index, save_vocabulary, make_data, load_vocabulary
 from classy.extract import Extractor, row_generator, row_generator_from_file
 from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
 from os import path
-from numpy import zeros, diff, ones, cumsum, where
+from numpy import zeros, diff, ones, cumsum, where, argsort, sort
 from scipy.sparse import vstack, hstack, csc_matrix
 
 L = logging.getLogger(__name__)
@@ -45,6 +46,9 @@ def generate_data(args):
 
     if args.cutoff > 1 and (args.replace or not path.exists(args.vocabulary)):
         data = drop_words(args.cutoff, data, vocabulary)
+
+    if args.select and args.select > 0:
+        data = select_words(args.select, data, vocabulary)
 
     save_index(data, args.index)
 
@@ -162,8 +166,9 @@ def drop_words(min_df, data, vocabulary):
     :param vocabulary: vocabulary dictionary
     :param data: ``Data`` structure
     :param min_df: integer; minimum document frequency
-    :return: a new Data structure
+    :return: a new ``Data`` structure
     """
+    L.debug("dropping features below df=%s", min_df)
     df = diff(csc_matrix(data.index, copy=False).indptr)  # document frequency
     mask = ones(len(df), dtype=bool)  # mask: columns that can/cannot stay
     mask &= df >= min_df  # create a "mask" of columns above cutoff
@@ -180,4 +185,35 @@ def drop_words(min_df, data, vocabulary):
         else:
             del vocabulary[word]
 
+    L.debug("pruned vocabulary size: %s", len(vocabulary))
+    return data
+
+
+def select_words(top_k, data, vocabulary):
+    """
+    Select the ``top_k`` most informative words (using a chi-square test)
+    and drop everything else from the index and vocabulary.
+
+    :param top_k: integer; the most informative features to maintain
+    :param data: ``Data`` structure
+    :param vocabulary: vocabulary dictionary
+    :return: a new ``Data`` structure
+    """
+    L.debug("selecting K=%s best features", top_k)
+    selector = SelectKBest(chi2, k=top_k)
+    selector.fit(data.index, data.labels)
+    mask = selector._get_support_mask()
+    new_idx = cumsum(mask) - 1  # new indices (with array len as old)
+    data = data._replace(index=data.index[:, mask])  # drop unused columns
+
+    for word in list(vocabulary.keys()):
+        idx = vocabulary[word]
+
+        if mask[idx]:
+            # noinspection PyUnresolvedReferences
+            vocabulary[word] = new_idx[idx]
+        else:
+            del vocabulary[word]
+
+    L.debug("reduced vocabulary size: %s", len(vocabulary))
     return data

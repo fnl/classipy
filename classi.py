@@ -43,6 +43,7 @@ generate.add_argument("--label-second", action='store_true', help='the nominal c
 generate.add_argument("--no-label", action='store_true', help='there is no label column present (data used only for predictions)')
 generate.add_argument("--no-id", action='store_true', help='the first (second if label first) column is not an ID column')
 generate.add_argument("--cutoff", '-c', default=3, type=int, help="min. doc. frequency required to use a feature; value must be a positive integer;  (default=%(default)s - only use features seen at least in 3 documents); only has an effect if a new vocabulary is (re-) generated")
+generate.add_argument("--select", '-s', metavar='K', type=int, help="only select the K best features using a chi-square test")
 generate.set_defaults(func=generate_data)
 
 learn = commands.add_parser('learn', help='a model from inverted index data', aliases=['l', 'le', 'lea', 'lear'])
@@ -61,7 +62,6 @@ cross_validation = evaluate.add_argument_group('optional arguments for cross-val
 cross_validation.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default: %(default)s)")
 cross_validation.add_argument("--folds", metavar='N', default=5, type=int, help="CV folds; N must be an integer > 1; (default=%(default)s)")
 cross_validation.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
-
 evaluate.set_defaults(func=evaluate_model)
 
 predict = commands.add_parser('predict', help='unlabeled data using a learned model (printing text ID - tab - label lines)', aliases=['p', 'pr', 'pre', 'pred', 'predi', 'predic'])

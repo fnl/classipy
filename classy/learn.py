@@ -61,6 +61,7 @@ def make_pipeline(args):
     classifier, parameters = build(args.classifier, data, args.jobs)
 
     if args.tfidf:
+        L.debug("transforming features with TF-IDF")
         pipeline.append(('transform', tfidf_transform(parameters)))
 
     pipeline.append(('classifier', classifier))
@@ -90,8 +91,7 @@ def tfidf_transform(params):
         'transform__norm': [None, 'l1', 'l2'],
         'transform__use_idf': [True, False],
         'transform__sublinear_tf': [True, False],
-        # Lidstone-like smoothing cannot be disabled
-        # (a SciKit-Learn bug similar to #3637?)
+        # Lidstone-like smoothing cannot be disabled (divide by zero)
         # 'transform__smooth_idf': [True, False],
     })
     return tfidf
