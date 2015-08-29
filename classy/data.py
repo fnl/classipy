@@ -56,6 +56,9 @@ def make_data(inverted_index, text_ids=None, labels=None):
     else:
         uniq, min_label = None, None
 
+    size = inverted_index.shape[0] * inverted_index.shape[1]
+    zeros = size - inverted_index.nnz
+    L.debug("sparsity: %s/%s (%s%%)", zeros, size, (zeros * 100 // size))
     return Data(text_ids, inverted_index.tocsr(), labels, uniq, min_label)
 
 
