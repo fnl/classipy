@@ -159,6 +159,9 @@ def drop_words(min_df, data, vocabulary):
     Prune words below some minimum document frequency ``min_df`` from the
     vocabulary (in-place) and drop those columns from the inverted index.
 
+    :param vocabulary: vocabulary dictionary
+    :param data: ``Data`` structure
+    :param min_df: integer; minimum document frequency
     :return: a new Data structure
     """
     df = diff(csc_matrix(data.index, copy=False).indptr)  # document frequency
@@ -172,6 +175,7 @@ def drop_words(min_df, data, vocabulary):
         idx = vocabulary[word]
 
         if mask[idx]:
+            # noinspection PyUnresolvedReferences
             vocabulary[word] = new_idx[idx]
         else:
             del vocabulary[word]
