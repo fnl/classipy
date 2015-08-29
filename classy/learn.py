@@ -7,14 +7,14 @@
 """
 
 import logging
-from classy.classifiers import build
-from classy.data import load_index, load_vocabulary
 from numpy import argsort, array
 from sklearn import metrics
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
+from .classifiers import build
+from .data import load_index, load_vocabulary
 
 L = logging.getLogger(__name__)
 

@@ -8,10 +8,10 @@
 
 import logging
 import sys
-from classy.data import load_index, get_n_rows, load_vocabulary
-from classy.extract import row_generator, row_generator_from_file, Extractor
-from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
 from sklearn.externals import joblib
+from .data import load_index, get_n_rows, load_vocabulary
+from .extract import row_generator, row_generator_from_file, Extractor
+from .transform import Transformer, AnnotationTransformer, FeatureEncoder
 
 L = logging.getLogger(__name__)
 

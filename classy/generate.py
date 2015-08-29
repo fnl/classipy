@@ -8,13 +8,12 @@
 
 import logging
 import sys
-from sklearn.feature_selection import SelectKBest, chi2
-from classy.data import save_index, save_vocabulary, make_data, load_vocabulary
-from classy.extract import Extractor, row_generator, row_generator_from_file
-from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
 from os import path
-from numpy import zeros, diff, ones, cumsum, where, argsort, sort
-from scipy.sparse import vstack, hstack, csc_matrix
+from numpy import zeros
+from scipy.sparse import vstack, hstack
+from .data import save_index, save_vocabulary, make_data, load_vocabulary
+from .extract import Extractor, row_generator, row_generator_from_file
+from .transform import Transformer, AnnotationTransformer, FeatureEncoder
 
 L = logging.getLogger(__name__)
 
@@ -43,12 +42,6 @@ def generate_data(args):
         data, vocabulary = parse_stdin(args, vocabulary)
     else:
         data, vocabulary = parse_files(args, vocabulary)
-
-    if args.cutoff > 1 and (args.replace or not path.exists(args.vocabulary)):
-        data = drop_words(args.cutoff, data, vocabulary)
-
-    if args.select and args.select > 0:
-        data = select_words(args.select, data, vocabulary)
 
     save_index(data, args.index)
 
