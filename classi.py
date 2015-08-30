@@ -102,10 +102,12 @@ labels.set_defaults(func=print_labels)
 
 args = parser.parse_args()
 
-log_format = '%(levelname)-8s %(module) 10s: %(funcName)s %(message)s'
+log_format = "%(asctime)s %(levelname)s %(module)s.%(funcName)s: %(message)s"
+formatter = logging.Formatter(log_format, "%y-%m-%d %H:%M:%S")
 log_adjust = max(min(args.quiet - args.verbose, 2), -2) * 10
 logging.basicConfig(filename=args.logfile, level=logging.WARNING + log_adjust,
                     format=log_format)
+logging.getLogger('').handlers[0].setFormatter(formatter)
 logging.info('verbosity increased')
 logging.debug('verbosity increased')
 
