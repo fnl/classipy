@@ -11,6 +11,7 @@ from numpy import argsort, array
 from sklearn import metrics
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_selection import VarianceThreshold
 from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
 from .classifiers import build
@@ -59,6 +60,10 @@ def make_pipeline(args):
         raise RuntimeError("input data has no labels to learn from")
 
     classifier, parameters = build(args.classifier, data, args.jobs)
+
+    if args.grid_search:
+        L.debug("filtering zero variance features to protect from divisions by zero")
+        pipeline.append(('filter', VarianceThreshold()))
 
     if args.tfidf:
         L.debug("transforming features with TF-IDF")
