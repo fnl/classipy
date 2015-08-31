@@ -41,6 +41,7 @@ def simple_evaluation(args):
 
 
 def cross_evaluation(args):
+    L.debug("cross-evaluation")
     pipeline, parameters, data = make_pipeline(args)
     cross_val = StratifiedKFold(data.labels, n_folds=args.folds, shuffle=True)
     results = []

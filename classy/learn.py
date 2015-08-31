@@ -61,7 +61,7 @@ def make_pipeline(args):
 
     classifier, parameters = build(args.classifier, data, args.jobs)
 
-    if args.grid_search:
+    if hasattr(args, "grid_search") and args.grid_search:
         L.debug("filtering zero variance features to protect from divisions by zero")
         pipeline.append(('filter', VarianceThreshold()))
 
