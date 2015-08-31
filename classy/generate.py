@@ -129,7 +129,7 @@ def _do(generator, args, vocab=None, grow=False):
 
     if args.annotate:
         groups = {i: args.annotate for i in stream.text_columns}
-        stream = AnnotationTransformer(stream, groups, *args.annotate)
+        stream = AnnotationTransformer(stream, groups)
 
     label_col = None if args.no_label else -1
 
