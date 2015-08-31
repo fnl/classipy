@@ -68,12 +68,12 @@ CLASSIFIERS[maxent.__name__] = maxent
 
 def randomforest():
     return RandomForestClassifier(n_estimators=50, max_depth=12,
-                                  class_weight='auto'), {
+                                  class_weight='auto', obo_score=False), {
         'classifier__n_estimators': [200, 100, 50, 25, 12],
         'classifier__max_depth': [100, 50, 25, 12, 6, 3],
         'classifier__max_features': ['sqrt', None],
         'classifier__criterion': ['gini', 'entropy'],
-        'classifier__oob_score': [True, False],
+        #'classifier__oob_score': [True, False], # breaks: bug #4954
     }
 
 CLASSIFIERS[randomforest.__name__] = randomforest
