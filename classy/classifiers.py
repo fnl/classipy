@@ -5,6 +5,7 @@
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
+from sklearn.ensemble import RandomForestClassifier
 
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
@@ -63,6 +64,19 @@ def maxent():
     }
 
 CLASSIFIERS[maxent.__name__] = maxent
+
+
+def randomforest():
+    return RandomForestClassifier(n_estimators=50, max_depth=12,
+                                  class_weight='auto'), {
+        'classifier__n_estimators': [200, 100, 50, 25, 12],
+        'classifier__max_depth': [100, 50, 25, 12, 6, 3],
+        'classifier__max_features': ['sqrt', None],
+        'classifier__criterion': ['gini', 'entropy'],
+        'classifier__oob_score': [True, False],
+    }
+
+CLASSIFIERS[randomforest.__name__] = randomforest
 
 
 def multinomial():
