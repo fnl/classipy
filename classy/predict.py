@@ -38,13 +38,13 @@ def batch_predictor(args):
         raise RuntimeError("input data has no labels to learn from")
 
     pipeline = joblib.load(args.model)
-    predictions = pipeline.predict(data.index)
+    predictions = pipeline.predict(data.index.tocsr())
 
     if args.scores:
         try:
-            scores = pipeline.predict_proba(data.index)
+            scores = pipeline.predict_proba(data.index.tocsr())
         except AttributeError:  # svm and other do not have this
-            scores = pipeline.decision_function(data.index)
+            scores = pipeline.decision_function(data.index.tocsr())
 
     if data.text_ids:
         text_ids = data.text_ids

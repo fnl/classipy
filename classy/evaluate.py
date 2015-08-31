@@ -33,7 +33,7 @@ def simple_evaluation(args):
         raise RuntimeError("input data has no labels to learn from")
 
     pipeline = joblib.load(args.model)
-    predictions = pipeline.predict(data.index)
+    predictions = pipeline.predict(data.index.tocsr())
     evaluate(data.labels, predictions, data.label_names, data.min_label)
 
     if args.pr_curve:
@@ -45,11 +45,12 @@ def cross_evaluation(args):
     pipeline, parameters, data = make_pipeline(args)
     cross_val = StratifiedKFold(data.labels, n_folds=args.folds, shuffle=True)
     results = []
+    index = data.index.tocsr()
 
     for step, (train, test) in enumerate(cross_val):
-        pipeline.fit(data.index[train], data.labels[train])
+        pipeline.fit(index[train], data.labels[train])
         targets = data.labels[test]
-        predictions = pipeline.predict(data.index[test])
+        predictions = pipeline.predict(index[test])
         print("\nCV Round", step + 1)
         L.debug("%s predictions/targets", len(predictions))
         c = Counter(targets)
