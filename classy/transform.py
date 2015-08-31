@@ -73,7 +73,7 @@ class Transformer(Etc):
         for segment in token_segments:
             for n in ns:
                 for i in range(len(segment) - n + 1):
-                    yield " ".join(segment[i:i + n])
+                    yield "_".join(segment[i:i + n])
 
     def k_shingle(self, token_segments):
         """
@@ -91,7 +91,7 @@ class Transformer(Etc):
 
         for k in range(2, self.K + 1):
             for shingle in itertools.combinations(words, k):
-                yield "_".join(sorted(shingle))
+                yield "+".join(sorted(shingle))
 
 
 class AnnotationTransformer(Etc):
@@ -151,7 +151,9 @@ class AnnotationTransformer(Etc):
         for row in self.rows:
             for token_col, annotation_cols in self.groups.items():
                 try:
-                    name = ':'.join(row[c] for c in annotation_cols)
+                    annotations = ['{}#{}'.format(self.names[c], row[c])
+                                   for c in annotation_cols]
+                    name = '+'.join(annotations)
                 except IndexError as ex1:
                     msg = "len(row)={}, but annotation_col_indices={}"
                     raise RuntimeError(
