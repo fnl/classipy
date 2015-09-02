@@ -7,7 +7,7 @@
 """
 
 import logging
-from numpy import argsort, array
+from numpy import argsort
 from sklearn import metrics
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -15,7 +15,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
 from .classifiers import build
-from .data import load_index, load_vocabulary
+from .data import load_index, make_inverted_vocabulary
 
 L = logging.getLogger(__name__)
 
@@ -34,22 +34,10 @@ def learn_model(args):
     joblib.dump(pipeline, args.model)
 
     if args.vocabulary:
-        voc = load_vocabulary(args.vocabulary, data)
-        cov = array(list(voc.keys()))
-
-        for word, idx in voc.items():
-            cov[idx] = word
-
+        cov = make_inverted_vocabulary(args.vocabulary, data)
         classifier = pipeline._final_estimator
         L.debug("classifier coefficients shape: %s", classifier.coef_.shape)
-
-        for i in range(classifier.coef_.shape[0]):
-            top_n = argsort(classifier.coef_[i])[:10]
-            worst_n = argsort(classifier.coef_[i])[-10:][::-1]
-            print('label {2} features (top-worst): "{0}", ... "{1}"'.format(
-                '", "'.join(cov[top_n]),
-                '", "'.join(cov[worst_n]), data.label_names[i],
-            ))
+        print_top_features(classifier, data, cov)
 
 
 def make_pipeline(args):
@@ -77,7 +65,7 @@ def make_pipeline(args):
 
 def grid_search(pipeline, params, data, jobs=-1):
     grid = GridSearchCV(pipeline, params, scoring=Scorer,
-                        cv=5, refit=True, n_jobs=jobs, verbose=1)
+                        cv=4, refit=True, n_jobs=jobs, verbose=1)
     grid.fit(data.index, data.labels)
     print("Best score:", grid.best_score_)
     print("Parameters:")
@@ -100,3 +88,13 @@ def tfidf_transform(params):
         # 'transform__smooth_idf': [True, False],
     })
     return tfidf
+
+
+def print_top_features(classifier, data, inverted_vocabulary):
+    for i in range(classifier.coef_.shape[0]):
+        top_n = argsort(classifier.coef_[i])[:10]
+        worst_n = argsort(classifier.coef_[i])[-10:][::-1]
+        print('label {2} features (top-worst): "{0}", ... "{1}"'.format(
+            '", "'.join(inverted_vocabulary[top_n]),
+            '", "'.join(inverted_vocabulary[worst_n]), data.label_names[i],
+        ))

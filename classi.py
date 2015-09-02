@@ -23,7 +23,6 @@ parser.add_argument('--quiet', '-Q', action='count', default=0, help='decrease l
 parser.add_argument('--logfile', metavar='FILE', help='log to file instead of <STDERR>')
 parser.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, help="vocabulary file (to generate or use)")
 parser.add_argument("--jobs", '-j', metavar='N', type=int, default=-1, help="number of threads/jobs to use for parallel processes (default: as many as [hyper-]cores)")
-#parser.set_defaults(func=lambda _: parser.print_help())
 
 commands = parser.add_subparsers(help='a command (use `CMD -h` to get help about a command):', metavar="CMD")
 
@@ -38,7 +37,8 @@ generate.add_argument("--lowercase", action='store_true', help="lowercase all le
 generate.add_argument("--encoding", type=str, default='utf-8', help="encoding of input files (default: %(default)s)")
 generate.add_argument("--n-grams", '-n', metavar='N', type=int, default=2, help="generate N-grams of all words in a sentence (default=%(default)s)")
 generate.add_argument("--k-shingles", '-k', metavar='K', type=int, default=1, help="generate all combinations of any K n-grams in the instance (default=%(default)s)")
-generate.add_argument("--annotate", '-a', metavar='COL', type=int, action='append', help="annotate text columns with the extra label from this/these column(s) using 1-based count")
+generate.add_argument("--annotate", '-a', metavar='COL', type=int, action='append', help="append the string from annotation column(s) (1-based column count) to each vocabulary feature generated")
+generate.add_argument("--feature", '-f', metavar='COL', type=int, action='append', help="generate independent vocabulary features from annotation column(s) (1-based column count)")
 generate.add_argument("--label-first", action='store_true', help='the nominal class label is the first instead of the last column')
 generate.add_argument("--label-second", action='store_true', help='the nominal class label is the second instead of the last column')
 generate.add_argument("--no-label", action='store_true', help='there is no label column present (data used only for predictions)')

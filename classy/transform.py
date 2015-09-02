@@ -153,7 +153,6 @@ class AnnotationTransformer(Etc):
                 try:
                     annotations = ['{}#{}'.format(self.names[c], row[c])
                                    for c in annotation_cols]
-                    name = '+'.join(annotations)
                 except IndexError as ex1:
                     msg = "len(row)={}, but annotation_col_indices={}"
                     raise RuntimeError(
@@ -164,9 +163,12 @@ class AnnotationTransformer(Etc):
                     raise RuntimeError(msg.format(annotation_cols)) from ex2
 
                 try:
-                    row[token_col] = [
-                        "{}:{}".format(name, token) for token in row[token_col]
-                    ]
+                    ann_tokens = []
+
+                    for name in annotations:
+                        ann_tokens.extend("{}:{}".format(name, token) for token in row[token_col])
+
+                    row[token_col].extend(ann_tokens)
                 except IndexError as ex3:
                     msg = "len(row)={}, but token_column_index={} [{}]"
                     raise RuntimeError(
@@ -200,7 +202,7 @@ class FeatureEncoder(Etc):
     """
 
     def __init__(self, transformer, vocabulary=None, grow_vocab=False,
-                 id_col=0, label_col=-1):
+                 id_col=0, label_col=-1, feature_cols=None):
         """
         :param transformer: the input Transformer stream
         :param vocabulary: optionally, use a predefined vocabulary
@@ -210,17 +212,20 @@ class FeatureEncoder(Etc):
                           based; None implies there is no label column present)
         :param grow_vocab: expand the vocabulary (if given, instead of ignoring
                            missing words)
+        :param feature_cols: weave annotation columns into the feature stream
+                             as additional "tokens"; (0-based)
         """
         super(FeatureEncoder, self).__init__(transformer)
-        L.debug("vocabulary=%s grow=%s id_col=%s label_col=%s",
+        L.debug("vocabulary=%s grow=%s id_col=%s label_col=%s feature_cols=%s",
                 "None" if vocabulary is None else len(vocabulary),
-                grow_vocab, id_col, label_col)
+                grow_vocab, id_col, label_col, feature_cols)
         self.rows = iter(transformer)
         self.id_col = None if id_col is None else int(id_col)
         self.label_col = None if label_col is None else int(label_col)
         self.vocabulary = None if vocabulary is None else dict(vocabulary)
         self.text_ids = []
         self.labels = []
+        self.feature_cols = feature_cols if feature_cols else []
         self._grow = grow_vocab and self.vocabulary is not None
 
     def _multirow_token_generator(self, row):
@@ -232,8 +237,16 @@ class FeatureEncoder(Etc):
             for token in row[col]:
                 yield template.format(name, token)
 
+        for col in self.feature_cols:
+            name = self.names[col]
+            yield "{}#{}".format(name, row[col])
+
     def _unirow_token_generator(self, row):
         yield from row[self.text_columns[0]]
+
+        for col in self.feature_cols:
+            name = self.names[col]
+            yield "{}#{}".format(name, row[col])
 
     def __iter__(self):
         vocab = self.vocabulary
@@ -261,7 +274,6 @@ class FeatureEncoder(Etc):
                     pass  # ignore features not in the vocabulary
 
             yield text_id, feature_counts.T  # transpose to document array
-
 
     def make_sparse_matrix(self):
         indices = array('L')

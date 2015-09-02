@@ -32,11 +32,8 @@ def generate_data(args):
     else:
         vocabulary = None
 
-    if args.annotate:  # transform to zero-based count
-        args.annotate = [a - 1 for a in args.annotate]
-
-        if any(a < 0 for a in args.annotate):
-            raise ValueError("not all annotate columns are positive integers")
+    args.annotate = fix_column_offset(args.annotate)
+    args.feature = fix_column_offset(args.feature)
 
     if not args.data:
         data, vocabulary = parse_stdin(args, vocabulary)
@@ -47,6 +44,17 @@ def generate_data(args):
 
     if args.vocabulary and (args.replace or not path.exists(args.vocabulary)):
         save_vocabulary(vocabulary, data, args.vocabulary)
+
+
+def fix_column_offset(columns):
+    """Transform one-based column indices to zero-based indices."""
+    if columns:
+        columns = [c - 1 for c in columns]
+
+        if any(c < 0 for c in columns):
+            raise ValueError("not all selected columns are positive integers")
+
+    return columns
 
 
 def parse_stdin(args, vocabulary):
@@ -144,10 +152,8 @@ def _do(generator, args, vocab=None, grow=False):
         id_col = 1
 
     stream = FeatureEncoder(stream, vocabulary=vocab, grow_vocab=grow,
-                            id_col=id_col, label_col=label_col)
+                            id_col=id_col, label_col=label_col, feature_cols=args.feature)
     matrix = stream.make_sparse_matrix()
     labels = stream.labels if stream.labels else None
     text_ids = stream.text_ids if stream.text_ids else None
     return matrix, stream.vocabulary, labels, text_ids
-
-

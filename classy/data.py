@@ -9,7 +9,7 @@
 import logging
 import pickle
 from numpy.core.umath import isfinite
-from numpy import typecodes, asarray, unique, where
+from numpy import typecodes, asarray, unique, where, array
 from sklearn.preprocessing import label_binarize
 from random import sample
 from collections import namedtuple, Counter
@@ -60,6 +60,14 @@ def make_data(inverted_index, text_ids=None, labels=None):
     zeros = size - inverted_index.nnz
     L.debug("sparsity: %s/%s (%s%%)", zeros, size, (zeros * 100 // size))
     return Data(text_ids, inverted_index.tocsr(), labels, uniq, min_label)
+
+
+def make_inverted_vocabulary(vocabulary_path, data):
+    voc = load_vocabulary(vocabulary_path, data)
+    cov = array(list(voc.keys()))
+    for word, idx in voc.items():
+        cov[idx] = word
+    return cov
 
 
 def get_n_rows(data):
