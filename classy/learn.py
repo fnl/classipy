@@ -91,10 +91,19 @@ def tfidf_transform(params):
 
 
 def print_top_features(classifier, data, inverted_vocabulary):
-    for i in range(classifier.coef_.shape[0]):
-        top_n = argsort(classifier.coef_[i])[:10]
-        worst_n = argsort(classifier.coef_[i])[-10:][::-1]
-        print('label {2} features (top-worst): "{0}", ... "{1}"'.format(
+    if hasattr(classifier, "feature_importances_"):
+        weights = classifier.feature_importances_
+        top_n = argsort(weights)[:10]
+        worst_n = argsort(weights)[-10:][::-1]
+        print('features (top-worst): "{0}", ... "{1}"'.format(
             '", "'.join(inverted_vocabulary[top_n]),
-            '", "'.join(inverted_vocabulary[worst_n]), data.label_names[i],
+            '", "'.join(inverted_vocabulary[worst_n]), data.label_names[0],
         ))
+    else:
+        for i in range(classifier.coef_.shape[0]):
+            top_n = argsort(classifier.coef_[i])[:10]
+            worst_n = argsort(classifier.coef_[i])[-10:][::-1]
+            print('label {2} features (top-worst): "{0}", ... "{1}"'.format(
+                '", "'.join(inverted_vocabulary[top_n]),
+                '", "'.join(inverted_vocabulary[worst_n]), data.label_names[i],
+            ))

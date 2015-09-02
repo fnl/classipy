@@ -8,6 +8,7 @@
 
 import logging
 import sys
+from classy.generate import fix_column_offset
 from sklearn.externals import joblib
 from .data import load_index, get_n_rows, load_vocabulary
 from .extract import row_generator, row_generator_from_file, Extractor
@@ -71,12 +72,8 @@ def stream_predictor(args):
 
     vocabulary = load_vocabulary(args.vocabulary)
     dialect = 'excel' if args.csv else 'plain'
-
-    if args.annotate:  # transform to zero-based count
-        args.annotate = [a - 1 for a in args.annotate]
-
-        if any(a < 0 for a in args.annotate):
-            raise ValueError("not all annotate columns are positive integers")
+    args.annotate = fix_column_offset(args.annotate)
+    args.feature = fix_column_offset(args.feature)
 
     if not args.index:
         gen = row_generator(sys.stdin, dialect=dialect)
