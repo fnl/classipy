@@ -25,7 +25,7 @@ Fifth, k-shingles - i.e., all possible n-gram combinations of the article - can 
 Finally, TF-IDF feature transformation, evaluation functions, and grid-search-based learning have been carefully tuned to make it easy to greatly accelerate the development of text classifiers.
 
 Overall, this library's declared goal is to make text classification as simple as it ever could be made with the current state of research and using software that is (reasonably) production-ready.
-For evaluation, you *should* be using `AUC PR`_ for a rank-based text classification result (see my `CrossValidated post`_ discussing why and how it outperforms AUC ROC, with further references to the relevant papers).
+For evaluation, you *should* be using `AUC PR`_ for a rank-based text classification result (see my `CrossValidated post`_ discussing why it should be preferred over AUC ROC, with a reference to the relevant paper).
 For unranked evaluations, and as the global optimization metric, the `MCC Score`_ is used.
 
 The general concept followed by `classipy` is to generate an inverted index (feature matrix) and a vocabulary (dictionary) from the input text.
