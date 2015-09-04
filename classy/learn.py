@@ -10,11 +10,10 @@ import logging
 from numpy import argsort
 from sklearn import metrics
 from sklearn.externals import joblib
-from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
-from .classifiers import build
+from .classifiers import build, tfidf_transform
 from .data import load_index, make_inverted_vocabulary
 
 L = logging.getLogger(__name__)
@@ -50,7 +49,8 @@ def make_pipeline(args):
     classifier, parameters = build(args.classifier, data, args.jobs)
 
     if hasattr(args, "grid_search") and args.grid_search:
-        L.debug("filtering zero variance features to protect from divisions by zero")
+        L.debug("filtering zero variance features "
+                "to protect from divisions by zero")
         pipeline.append(('filter', VarianceThreshold()))
 
     if args.tfidf:
@@ -74,20 +74,6 @@ def grid_search(pipeline, params, data, jobs=-1):
         print('{} = {}'.format(name, repr(value)))
 
     return grid.best_estimator_
-
-
-def tfidf_transform(params):
-    tfidf = TfidfTransformer(
-        norm='l2', sublinear_tf=True, smooth_idf=True, use_idf=True
-    )
-    params.update({
-        'transform__norm': [None, 'l1', 'l2'],
-        'transform__use_idf': [True, False],
-        'transform__sublinear_tf': [True, False],
-        # Lidstone-like smoothing cannot be disabled (divide by zero)
-        # 'transform__smooth_idf': [True, False],
-    })
-    return tfidf
 
 
 def print_top_features(classifier, data, inverted_vocabulary):
