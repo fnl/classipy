@@ -44,7 +44,7 @@ def tfidf_transform(params):
 
 def ridge():
     return RidgeClassifier(max_iter=1e4, class_weight='auto', solver='auto'), {
-        'classifier__alpha': [1e3, 10, 1, .1, 1e-3],
+        'classifier__alpha': [1e3, 1e1, 1, 1e-1, 1e-2],
         'classifier__normalize': [True, False],
         'classifier__tol': [.05, 1e-3, 1e-6],
         # 'classifier__class_weight': ['auto', None],
@@ -56,7 +56,7 @@ CLASSIFIERS[ridge.__name__] = ridge
 
 def svm():
     return LinearSVC(loss='hinge', max_iter=1e4, class_weight='auto'), {
-        'classifier__C': [1e8, 1e3, 1, 1e-2, 1e-4],
+        'classifier__C': [1e5, 1e2, 1, 1e-1, 1e-2],
         'classifier__loss': ['hinge', 'squared_hinge'],
         'classifier__intercept_scaling': [10., 1., .1],
         'classifier__tol': [.05, 1e-4, 1e-8],
@@ -69,7 +69,7 @@ CLASSIFIERS[svm.__name__] = svm
 
 def maxent():
     return LogisticRegression(max_iter=1e4, class_weight='auto'), {
-        'classifier__C': [1e8, 1e3, 1, 1e-2, 1e-4],
+        'classifier__C': [1e5, 1e2, 1, 1e-1, 1e-2],
         'classifier__intercept_scaling': [10, 1, .1],
         'classifier__penalty': ['l1', 'l2'],
         'classifier__tol': [.05, 1e-4, 1e-8],
