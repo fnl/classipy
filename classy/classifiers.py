@@ -1,6 +1,7 @@
 """
 .. py:module:: classy.classifiers
-   :synopsis: All classifiers available to classy, with their parameter ranges for a grid search.
+   :synopsis: All classifiers available to classy,
+              with generic, tuned parameter ranges for the grid search.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
@@ -16,6 +17,12 @@ CLASSIFIERS = {}
 
 
 def build(option, data, jobs=-1):
+    """
+    Create a classifier and add a one-vs-rest wrapper around it
+    if the data is multinomial.
+
+    :return: A (classifier instance, parameter dictionary) tuple
+    """
     try:
         classy = CLASSIFIERS[option]()
     except KeyError:

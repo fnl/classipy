@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.select
-   :synopsis: Feature selection for classifiers.
+   :synopsis: Feature selection over the inverted indices.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
@@ -41,7 +41,7 @@ def drop_words(min_df, data, vocabulary=None):
     Prune words below some minimum document frequency ``min_df`` from the
     vocabulary (in-place) and drop those columns from the inverted index.
 
-    :param vocabulary: vocabulary dictionary
+    :param vocabulary: vocabulary dictionary (will be updated in-place)
     :param data: ``Data`` structure
     :param min_df: integer; minimum document frequency
     :return: a new ``Data`` structure
@@ -64,7 +64,7 @@ def select_best(k, data, vocabulary=None):
 
     :param k: integer; the most informative features to maintain
     :param data: ``Data`` structure
-    :param vocabulary: vocabulary dictionary
+    :param vocabulary: vocabulary dictionary (will be updated in-place)
     :return: a new ``Data`` structure
     """
     L.debug("selecting K=%s best features", k)
@@ -78,6 +78,7 @@ def select_best(k, data, vocabulary=None):
 
 
 def prune(vocabulary, mask, new_idx):
+    """Clean up the vocabulary with the given mask and new indices."""
     if vocabulary:
         for word in list(vocabulary.keys()):
             idx = vocabulary[word]
