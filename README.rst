@@ -105,6 +105,12 @@ Naturally, it can print the confidence scores for each prediction (binary labels
 
 Finally, Classi.py has a number of additional tricks up its sleeve that you can learn by reading the (command-line help) documentation.
 
+.. _AUC PR:: http://scikit-learn.org/stable/auto_examples/model_selection/plot_precision_recall.html
+.. _CrossValidated post:: http://stats.stackexchange.com/questions/7207/roc-vs-precision-and-recall-curves/158354#158354
+.. _MCC Score:: https://en.wikipedia.org/wiki/Matthews_correlation_coefficient
 
-
-
+.. _SciKit-Learn:: http://scikit-learn.org/
+.. _matplotlib:: http://matplotlib.org/
+.. _PySide:: https://pypi.python.org/pypi/PySide
+.. _regex:: https://pypi.python.org/pypi/regex
+.. _segtok:: https://pypi.python.org/pypi/segtok
