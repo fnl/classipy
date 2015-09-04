@@ -7,7 +7,8 @@
 import argparse
 import logging
 from classy import CLASSIFIERS, print_labels, \
-    generate_data, select_features, learn_model, evaluate_model, predict_labels
+    generate_data, select_features, learn_model, evaluate_model, predict_labels, \
+    print_vocabulary
 
 
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"
@@ -102,6 +103,11 @@ predict.set_defaults(func=predict_labels)
 labels = commands.add_parser('labels', help='list all label names (classes) in a (labeled) index file')
 labels.add_argument('index', metavar='INDEX', help="inverted index file")
 labels.set_defaults(func=print_labels)
+
+labels = commands.add_parser('vocabulary', help='list all vocabulary words (features)', aliases=['v', 'vo', 'voc', 'voca', 'vocab'])
+labels.add_argument('vocabulary', metavar='VOCAB', help="vocabulary file")
+labels.set_defaults(func=print_vocabulary)
+
 
 
 # Argument Parsing
