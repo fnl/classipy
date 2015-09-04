@@ -1,12 +1,12 @@
-=========
-classi.py
-=========
+========
+classipy
+========
 
 -------------------------------------
 An automated text classification tool
 -------------------------------------
 
-Classi.py provides a command-line interace to develop and run a text classifier.
+`classipy` provides a command-line interace to develop and run a text classifier.
 
 Overview
 ========
@@ -17,7 +17,7 @@ There is no support for Deep Learning because the more common case is that one o
 If you do have a large labeled corpus and are interested in using a Neural Network, it probably would be not that difficult to extend the sources, however.
 
 The main contribution, however, is the enhanced feature generation process that is far more complex than what "off-the-shelf" SciKit-Learn tools have to offer.
-First, Classi.py uses my own segtok_ sentence segmentation and word tokenization library.
+First, `classipy` uses my own segtok_ sentence segmentation and word tokenization library.
 Second, it can properly handle multiple text fields (e.g., title, abstract, body, ...).
 Third, it can integrate metadata (annotations) either on a per-feature or per-instance basis.
 Fourth, n-grams are not generated beyond sentence boundaries.
@@ -28,8 +28,8 @@ Overall, this library's declared goal is to make text classification as simple a
 For evaluation, you *should* be using `AUC PR`_ for a rank-based text classification result (see my `CrossValidated post`_ discussing why and how it outperforms AUC ROC, with further references to the relevant papers).
 For unranked evaluations, and as the global optimization metric, the `MCC Score`_ is used.
 
-The general concept followed by Classi.py is to generate an inverted index (feature matrix) and a vocabulary (dictionary) from the input text.
-With those two files, Classi.py then allows you to learn and evaluat a model.
+The general concept followed by `classipy` is to generate an inverted index (feature matrix) and a vocabulary (dictionary) from the input text.
+With those two files, `classipy` then allows you to learn and evaluat a model.
 You also can cross-validate a pre-parametrized classifier on the inverted index to tune the right feature generation process.
 Once you are happy with the model you built, you can use it to run predictions on (unlabeled) text data-streams (i.e., UNIX pipes).
 
@@ -46,7 +46,7 @@ In addtion, but not required, to plot the main evaluation function, you will nee
 Usage
 =====
 
-Classi.py provides itself as a command-line script (`classi.py`) and uses a command (word) to run various kinds of tasks:
+`classipy` provides itself as a command-line script (`classi.py`) and uses a command (word) to run various kinds of tasks:
 
 - `generate` generates inverted indices (feature matrices)
 - `learn` allows you to train and develop a classifier model
@@ -65,7 +65,7 @@ Multi-label (multinomial) support is already built-in and automatically detected
 The suggested first step should probably be that you somehow split the corpus in a training+development ("learning") and a test set.
 Typically, such splits are 3:2, 4:1, or 9:1, and I suggest to use 4:1.
 For splitting the learning set into development and training set during parameter grid-search, the tool internally uses a 1:3 split with 4-fold CV.
-So, if you use an 4:1 learning:test split, Classi.py will make a 3:1 traininig:development split on the remaining data, for an overall 3:1:1 split.
+So, if you use an 4:1 learning:test split, `classipy` will make a 3:1 traininig:development split on the remaining data, for an overall 3:1:1 split.
 This choice was made as to make the library tuned towards small annotated corpora/datasets where you need to set aside most of the little data you have as to not hopelessly overfit while developing your model.
 
 Assuming you generated two sets, `learning.tsv` and `test.tsv`, the next step is to generated the inverted indices/feature matrices from the two sets.
@@ -103,7 +103,7 @@ Assuming you are happy with the result, you now can classify new texts::
 `predict` can also read text in columnar format off the STDIN, so it can be used in UNIX data pipelines, and naturally also works with pre-generated index files.
 Naturally, it can print the confidence scores for each prediction (binary labels: one score; multi-labels: one score for each label); see `--scores`.
 
-Finally, Classi.py has a number of additional tricks up its sleeve that you can learn by reading the (command-line help) documentation.
+Finally, `classipy` has a number of additional tricks up its sleeve that you can learn by reading the (command-line help) documentation.
 
 .. _AUC PR:: http://scikit-learn.org/stable/auto_examples/model_selection/plot_precision_recall.html
 .. _CrossValidated post:: http://stats.stackexchange.com/questions/7207/roc-vs-precision-and-recall-curves/158354#158354
