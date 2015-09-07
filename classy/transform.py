@@ -60,6 +60,9 @@ class Transformer(Etc):
         shingles = self.k_shingle(row[i])
         row[i] = list(itertools.chain(n_grams, shingles))
 
+        if len(row[i]) == 0:
+            row[i] = ['#void#']
+
     def n_gram(self, token_segments):
         """
         Yield consecutive n-grams from all ``token_segments``.
