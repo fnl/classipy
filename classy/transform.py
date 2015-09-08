@@ -60,8 +60,8 @@ class Transformer(Etc):
         shingles = self.k_shingle(row[i])
         row[i] = list(itertools.chain(n_grams, shingles))
 
-        if len(row[i]) == 0:
-            row[i] = ['#void#']
+        if len(row[i]) == 0:  # mark void fields as such
+            row[i] = ['#~void~#']
 
     def n_gram(self, token_segments):
         """
