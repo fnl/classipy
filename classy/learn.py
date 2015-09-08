@@ -13,7 +13,7 @@ from sklearn.externals import joblib
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
-from .classifiers import build, tfidf_transform
+from .classifiers import build, tfidf_transform, maxent, svm
 from .data import load_index, make_inverted_vocabulary
 
 L = logging.getLogger(__name__)
@@ -53,11 +53,29 @@ def make_pipeline(args):
                 "to protect from divisions by zero")
         pipeline.append(('filter', VarianceThreshold()))
 
+    if args.extract:
+        L.debug("extracting features with %s",
+                "Logistic Regression" if args.classifier == "svm" else
+                "a linear SVM")
+        model, params = maxent(penalty='l1') if \
+            args.classifier == "svm" else \
+            svm(loss='squared_hinge', penalty='l1', dual=False)
+        pipeline.append(('select', model))
+
+        for key, value in params.items():
+            key = key.replace('classify', 'select')
+
+            if not (key.endswith('__penalty') or key.endswith('__loss')):
+                parameters[key] = value
+
     if args.tfidf:
         L.debug("transforming features with TF-IDF")
         pipeline.append(('transform', tfidf_transform(parameters)))
 
-    pipeline.append(('classifier', classifier))
+    if hasattr(args, "grid_search") and args.grid_search:
+        L.debug("grid-search parameters: %s", parameters)
+
+    pipeline.append(('classify', classifier))
     pipeline = Pipeline(pipeline)
 
     return pipeline, parameters, data

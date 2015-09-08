@@ -51,36 +51,38 @@ def tfidf_transform(params):
 
 def ridge():
     return RidgeClassifier(max_iter=1e4, class_weight='auto', solver='auto'), {
-        'classifier__alpha': [1e3, 1e1, 1, 1e-1, 1e-2],
-        'classifier__normalize': [True, False],
-        'classifier__tol': [.05, 1e-3, 1e-6],
-        # 'classifier__class_weight': ['auto', None],
-        # 'classifier__solver': ['svd', 'cholesky', 'lsqr', 'sparse_cg'],
+        'classify__alpha': [1e3, 1e1, 1, 1e-1, 1e-2],
+        'classify__normalize': [True, False],
+        'classify__tol': [.05, 1e-3, 1e-6],
+        # 'classify__class_weight': ['auto', None],
+        # 'classify__solver': ['svd', 'cholesky', 'lsqr', 'sparse_cg'],
     }
 
 CLASSIFIERS[ridge.__name__] = ridge
 
 
-def svm():
-    return LinearSVC(loss='hinge', max_iter=1e4, class_weight='auto'), {
-        'classifier__C': [1e5, 1e2, 1, 1e-1, 1e-2],
-        'classifier__loss': ['hinge', 'squared_hinge'],
-        'classifier__intercept_scaling': [10., 1., .1],
-        'classifier__tol': [.05, 1e-4, 1e-8],
-        # 'classifier__class_weight': ['auto', None],
-        # 'classifier__dual': [True, False],  # doesn't mix...
+def svm(loss='hinge', max_iter=1e4, class_weight='auto', **keys):
+    return LinearSVC(loss=loss, max_iter=max_iter, class_weight=class_weight,
+                     **keys), {
+        'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
+        'classify__loss': ['hinge', 'squared_hinge'],
+        'classify__intercept_scaling': [10., 1., .1],
+        'classify__tol': [.05, 1e-4, 1e-8],
+        # 'classify__class_weight': ['auto', None],
+        # 'classify__dual': [True, False],  # doesn't mix...
     }
 
 CLASSIFIERS[svm.__name__] = svm
 
 
-def maxent():
-    return LogisticRegression(max_iter=1e4, class_weight='auto'), {
-        'classifier__C': [1e5, 1e2, 1, 1e-1, 1e-2],
-        'classifier__intercept_scaling': [10, 1, .1],
-        'classifier__penalty': ['l1', 'l2'],
-        'classifier__tol': [.05, 1e-4, 1e-8],
-        # 'classifier__class_weight': ['auto', None],
+def maxent(max_iter=1e4, class_weight='auto', **keys):
+    return LogisticRegression(max_iter=max_iter, class_weight=class_weight,
+                              **keys), {
+        'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
+        'classify__intercept_scaling': [10, 1, .1],
+        'classify__penalty': ['l1', 'l2'],
+        'classify__tol': [.05, 1e-4, 1e-8],
+        # 'classify__class_weight': ['auto', None],
     }
 
 CLASSIFIERS[maxent.__name__] = maxent
@@ -90,12 +92,12 @@ def randomforest():
     return RandomForestClassifier(n_estimators=40, max_depth=25,
                                   criterion='gini', max_features='auto',
                                   class_weight='auto', oob_score=False), {
-        'classifier__n_estimators': [80, 40, 20, 10],
-        'classifier__max_depth': [100, 25, 5, 2],
-        # 'classifier__class_weight': ['auto', None],
-        # 'classifier__max_features': ['sqrt', None],
-        # 'classifier__criterion': ['gini', 'entropy'],
-        # 'classifier__oob_score': [True, False],  # breaks: bug #4954
+        'classify__n_estimators': [80, 40, 20, 10],
+        'classify__max_depth': [100, 25, 5, 2],
+        # 'classify__class_weight': ['auto', None],
+        # 'classify__max_features': ['sqrt', None],
+        # 'classify__criterion': ['gini', 'entropy'],
+        # 'classify__oob_score': [True, False],  # breaks: bug #4954
     }
 
 CLASSIFIERS[randomforest.__name__] = randomforest
@@ -104,8 +106,8 @@ CLASSIFIERS[randomforest.__name__] = randomforest
 def multinomial():
     return MultinomialNB(), {
         # NB: class_prior=None is like class_weight='auto'
-        'classifier__alpha': [10., 1., 0., .1, .01, .001],
-        'classifier__fit_prior': [True, False],
+        'classify__alpha': [10., 1., 0., .1, .01, .001],
+        'classify__fit_prior': [True, False],
     }
 
 CLASSIFIERS[multinomial.__name__] = multinomial
@@ -114,8 +116,8 @@ CLASSIFIERS[multinomial.__name__] = multinomial
 def bernoulli():
     return BernoulliNB(), {
         # NB: class_prior=None is like class_weight='auto'
-        'classifier__alpha': [10., 1., 0., .1, .01, .001],
-        'classifier__fit_prior': [True, False],
+        'classify__alpha': [10., 1., 0., .1, .01, .001],
+        'classify__fit_prior': [True, False],
     }
 
 CLASSIFIERS[bernoulli.__name__] = bernoulli
