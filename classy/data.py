@@ -159,7 +159,7 @@ def load_vocabulary(path, data=None):
 
     assert isinstance(vocabulary, dict), "vocabulary not a dict"
     size = len(vocabulary)
-    L.info(" vocabulary size: %s", size)
+    L.info("vocabulary size: %s", size)
     rnd_sample = sample(vocabulary.keys(), min(size, 10))
     L.debug("vocabulary sample: %s", ', '.join(rnd_sample))
 
