@@ -61,53 +61,15 @@ class NGramTransformer(Etc):
         The n-gram size, ``N``, is configured at instance level.
 
         :param token_segments: a list of a list of strings (tokens)
-        :return: a n-gram generator; tokens are joined by underscore (``_``).
+        :return: a n-gram generator; tokens are joined by ``+``.
         """
         ns = range(1, self.N + 1)
 
         for segment in token_segments:
             for n in ns:
                 for i in range(len(segment) - n + 1):
-                    yield "_".join(segment[i:i + n])
-
-
-class FeatureTransformer(Etc):
-
-    """
-    Takes a transformer and *appends* annotations to each text field.
-
-    Appending is done by adding the a string consisting of the name of the annotation column
-    and the annotation itself, separated by a colon character (``:``).
-    """
-
-    def __init__(self, transformer, columns, binarize=False):
-        """
-        :param transformer: the input Transformer stream
-        :param columns: weave annotation columns into the token lists
-                        as additional "tokens"; (0-based)
-        """
-        super(FeatureTransformer, self).__init__(transformer)
-        L.debug("columns=%s", columns)
-        self.rows = iter(transformer)
-        self.annotation_columns = list(int(c) for c in columns)
-        self.binarize = binarize
-
-    def __iter__(self):
-        names = self.names
-        cols = self.annotation_columns
-
-        for row in self.rows:
-            if cols:
-                for txt in self.text_columns:
-                    tokens = row[txt]
-                    feats = ["{:s}#{:s}".format(names[c], row[c]) for c in cols]
-                    tokens.extend(feats)
-
-                    if self.binarize:
-                        for pair in itertools.combinations(feats, 2):
-                            tokens.append("+".join(pair))
-
-            yield row
+                    if n == 1 or all(t.isalnum() for t in segment[i:i + n]):
+                        yield "+".join(segment[i:i + n])
 
 
 class KShingleTransformer(Etc):
@@ -150,13 +112,14 @@ class KShingleTransformer(Etc):
         matter (unlike with n-grams).
 
         :param tokens: the list of tokens (strings)
-        :return: a k-shingle generator; tokens are joined by a plus (``+``)
+        :return: a k-shingle generator; tokens are joined by ``_``
         """
-        words = list(sorted(set(tokens)))  # sorted to ensure uniqueness
+        words = {t for t in tokens if t.isalnum()}
+        words = list(sorted(words))  # sorted to ensure uniqueness
 
         for k in range(2, self.K + 1):
             for shingle in itertools.combinations(words, k):
-                yield "+".join(sorted(shingle))
+                yield "_".join(sorted(shingle))
 
 
 class AnnotationTransformer(Etc):
@@ -192,6 +155,7 @@ class AnnotationTransformer(Etc):
             col_name = self._names[col] if col < len(self._names) else "ERROR"
             err = msg.format(col, col_name, self.text_columns)
             assert col in self.text_columns, err
+            L.debug("group %s <= %s", self.names[col], [self.names[i] for i in self.groups[col]])
 
     def __iter__(self):
         for row in self.rows:
@@ -223,6 +187,47 @@ class AnnotationTransformer(Etc):
                     raise RuntimeError(
                         msg.format(len(row), token_col, self._names[token_col])
                     ) from ex3
+
+            yield row
+
+
+class FeatureTransformer(Etc):
+
+    """
+    Takes a transformer and *appends* annotations as new features to each text field.
+
+    Appending is done by adding the a string consisting of the name of the annotation column
+    and the annotation itself, separated by a colon character (``:``).
+    """
+
+    def __init__(self, transformer, columns, binarize=False):
+        """
+        :param transformer: the input Transformer stream
+        :param columns: weave annotation columns into the token lists
+                        as additional "tokens"; (0-based)
+        :param binarize: also add all binary combinations of the annotations
+        """
+        super(FeatureTransformer, self).__init__(transformer)
+        L.debug("feature columns=%s%s", columns, " BINARY" if binarize else "")
+        self.rows = iter(transformer)
+        self.feature_columns = list(int(c) for c in columns)
+        self.binarize = binarize
+        L.debug("features: %s", [self.names[i] for i in self.feature_columns])
+
+    def __iter__(self):
+        names = self.names
+        cols = self.feature_columns
+
+        for row in self.rows:
+            if cols:
+                for txt in self.text_columns:
+                    tokens = row[txt]
+                    feats = ["{:s}#{:s}".format(names[c], row[c]) for c in cols]
+                    tokens.extend(feats)
+
+                    if self.binarize:
+                        for pair in itertools.combinations(feats, 2):
+                            tokens.append("+".join(pair))
 
             yield row
 
