@@ -74,10 +74,9 @@ def make_pipeline(args):
         L.debug("transforming features with TF-IDF")
         pipeline.append(('transform', tfidf_transform(parameters)))
 
-    if args.classifier == "rbf":
-        L.debug("scaling features for the RBF kernel")
-        pipeline.append(('scale', Normalizer()))
-        parameters['scale__norm'] = ['l1', 'l2']
+    L.debug("scaling features to norm")
+    pipeline.append(('scale', Normalizer()))
+    parameters['scale__norm'] = ['l1', 'l2']
 
     if hasattr(args, "grid_search") and args.grid_search:
         L.debug("grid-search parameters: %s", parameters)
