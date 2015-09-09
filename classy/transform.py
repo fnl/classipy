@@ -295,6 +295,9 @@ class FeatureEncoder(Etc):
 
             yield text_id, feature_counts.T  # transpose to document array
 
+            if line % 1000:
+                L.info("processed %s articles", line)
+
     def make_sparse_matrix(self):
         indices = array('L')
         pointers = array('L')
