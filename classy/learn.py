@@ -31,7 +31,7 @@ def learn_model(args):
     if args.grid_search:
         pipeline = grid_search(pipeline, parameters, data, args.jobs)
 
-    pipeline.fit(data.index, data.labels)
+    pipeline.fit(data.index.asfptype(), data.labels)
     joblib.dump(pipeline, args.model)
 
     if args.vocabulary:
@@ -91,7 +91,7 @@ def make_pipeline(args):
 def grid_search(pipeline, params, data, jobs=-1):
     grid = GridSearchCV(pipeline, params, scoring=Scorer,
                         cv=4, refit=True, n_jobs=jobs, verbose=1)
-    grid.fit(data.index, data.labels)
+    grid.fit(data.index.asfptype(), data.labels)
     print("Best score:", grid.best_score_)
     print("Parameters:")
 
