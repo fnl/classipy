@@ -80,7 +80,7 @@ class FeatureTransformer(Etc):
     and the annotation itself, separated by a colon character (``:``).
     """
 
-    def __init__(self, transformer, columns):
+    def __init__(self, transformer, columns, binarize=False):
         """
         :param transformer: the input Transformer stream
         :param columns: weave annotation columns into the token lists
@@ -90,6 +90,7 @@ class FeatureTransformer(Etc):
         L.debug("columns=%s", columns)
         self.rows = iter(transformer)
         self.annotation_columns = list(int(c) for c in columns)
+        self.binarize = binarize
 
     def __iter__(self):
         names = self.names
@@ -99,9 +100,12 @@ class FeatureTransformer(Etc):
             if cols:
                 for txt in self.text_columns:
                     tokens = row[txt]
+                    feats = ["{:s}#{:s}".format(names[c], row[c]) for c in cols]
+                    tokens.extend(feats)
 
-                    for c in cols:
-                        tokens.append("{:s}#{:s}".format(names[c], row[c]))
+                    if self.binarize:
+                        for pair in itertools.combinations(feats, 2):
+                            tokens.append("+".join(pair))
 
             yield row
 
@@ -201,8 +205,10 @@ class AnnotationTransformer(Etc):
                         msg.format(len(row), annotation_cols)
                     ) from ex1
                 except TypeError as ex2:
-                    msg = "not all annotation_columns={} are strings"
-                    raise RuntimeError(msg.format(annotation_cols)) from ex2
+                    msg = "not all annotation_columns={} are strings: {}"
+                    raise RuntimeError(
+                        msg.format(annotation_cols, [type(row[c]) for c in annotation_cols])
+                    ) from ex2
 
                 try:
                     ann_tokens = []
@@ -342,7 +348,7 @@ class FeatureEncoder(Etc):
             pointers.append(len(indices))
 
             if len(pointers) % 100 == 0:
-                L.info("processed %s documents (voc. size: %s)", len(pointers), len(vocab))
+                L.info("processed %s documents (vocab. size: %s)", len(pointers), len(vocab))
 
         if self.vocabulary is None or self._grow:
             self.vocabulary = dict(vocab)
@@ -359,11 +365,11 @@ def transform_input(generator, args):
                        lower=args.lowercase, decap=args.decap)
     stream = NGramTransformer(stream, n=args.n_grams)
 
-    if args.feature:
-        stream = FeatureTransformer(stream, args.feature)
-
     if args.k_shingles > 1:
         stream = KShingleTransformer(stream, k=args.k_shingles)
+
+    if args.feature:
+        stream = FeatureTransformer(stream, args.feature, args.binarize)
 
     if args.annotate:
         groups = {i: args.annotate for i in stream.text_columns}
