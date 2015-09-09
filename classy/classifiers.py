@@ -76,9 +76,9 @@ def svm(loss='hinge', max_iter=1e4, class_weight='auto', **keys):
 CLASSIFIERS[svm.__name__] = svm
 
 
-def rbf(max_iter=1e4, class_weight='auto', **keys):
-    return SVC(max_iter=max_iter, class_weight=class_weight, **keys), {
-        'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
+def rbf(max_iter=-1, cache_size=1000, class_weight='auto', **keys):
+    return SVC(max_iter=max_iter, cache_size=cache_size, class_weight=class_weight, **keys), {
+        'classify__C': [1e3, 5e1, 1, 1e-1, 1e-2],
         'classify__tol': [.05, 1e-4, 1e-8],
         # 'classify__class_weight': ['auto', None],
     }

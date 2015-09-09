@@ -15,6 +15,8 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
 from .classifiers import build, tfidf_transform, maxent, svm
 from .data import load_index, make_inverted_vocabulary
+from sklearn.preprocessing import StandardScaler
+
 
 L = logging.getLogger(__name__)
 
@@ -71,6 +73,10 @@ def make_pipeline(args):
     if args.tfidf:
         L.debug("transforming features with TF-IDF")
         pipeline.append(('transform', tfidf_transform(parameters)))
+
+    if args.classifier == "rbf":
+        L.debug("scaling features to the [0,1] range")
+        pipeline.append(('scale', StandardScaler()))
 
     if hasattr(args, "grid_search") and args.grid_search:
         L.debug("grid-search parameters: %s", parameters)
