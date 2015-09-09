@@ -126,6 +126,7 @@ def load_index(path):
         data = pickle.load(f)
 
     check_integrity(data)
+    data = data._replace(index=data.index.asfptype())
     return data
 
 
