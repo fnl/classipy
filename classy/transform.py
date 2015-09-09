@@ -368,11 +368,11 @@ def transform_input(generator, args):
     if args.k_shingles > 1:
         stream = KShingleTransformer(stream, k=args.k_shingles)
 
-    if args.feature:
-        stream = FeatureTransformer(stream, args.feature, args.binarize)
-
     if args.annotate:
         groups = {i: args.annotate for i in stream.text_columns}
         stream = AnnotationTransformer(stream, groups)
+
+    if args.feature:
+        stream = FeatureTransformer(stream, args.feature, args.binarize)
 
     return stream
