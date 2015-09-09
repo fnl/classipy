@@ -50,10 +50,10 @@ class NGramTransformer(Etc):
             yield row
 
     def _extract(self, row, i):
-        row[i] = list(self.n_gram(row[i]))
-
         if len(row[i]) == 0:  # mark void fields as such
             row[i] = ['~void~']
+        else:
+            row[i] = list(self.n_gram(row[i]))
 
     def n_gram(self, token_segments):
         """
@@ -92,12 +92,16 @@ class FeatureTransformer(Etc):
         self.annotation_columns = list(int(c) for c in columns)
 
     def __iter__(self):
-        for row in self.rows:
-            for txt in self.text_columns:
-                tokens = row[txt]
+        names = self.names
+        cols = self.annotation_columns
 
-                for col in self.annotation_columns:
-                    tokens.append("{:s}#{:s}".format(self.names[col], row[col]))
+        for row in self.rows:
+            if cols:
+                for txt in self.text_columns:
+                    tokens = row[txt]
+
+                    for c in cols:
+                        tokens.append("{:s}#{:s}".format(names[c], row[c]))
 
             yield row
 
@@ -296,7 +300,7 @@ class FeatureEncoder(Etc):
             yield text_id, feature_counts.T  # transpose to document array
 
             if line % 1000:
-                L.info("processed %s articles", line)
+                L.info("processed %s documents", line)
 
     def make_sparse_matrix(self):
         indices = array('L')
@@ -336,6 +340,9 @@ class FeatureEncoder(Etc):
                     pass  # ignore features not in the vocabulary
 
             pointers.append(len(indices))
+
+            if len(pointers) % 1000:
+                L.info("processed %s documents", len(pointers))
 
         if self.vocabulary is None or self._grow:
             self.vocabulary = dict(vocab)
