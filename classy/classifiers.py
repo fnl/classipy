@@ -11,7 +11,8 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.linear_model import RidgeClassifier, LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
+
 
 CLASSIFIERS = {}
 
@@ -73,6 +74,16 @@ def svm(loss='hinge', max_iter=1e4, class_weight='auto', **keys):
     }
 
 CLASSIFIERS[svm.__name__] = svm
+
+
+def rbf(max_iter=1e4, class_weight='auto', **keys):
+    return SVC(max_iter=max_iter, class_weight=class_weight, **keys), {
+        'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
+        'classify__tol': [.05, 1e-4, 1e-8],
+        # 'classify__class_weight': ['auto', None],
+    }
+
+CLASSIFIERS[rbf.__name__] = rbf
 
 
 def maxent(max_iter=1e4, class_weight='auto', **keys):
