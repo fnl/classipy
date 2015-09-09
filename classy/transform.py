@@ -129,7 +129,7 @@ class KShingleTransformer(Etc):
         for row in self.rows:
             if self.K > 1:
                 for i in self.text_columns:
-                    row[i] = list(self.k_shingle(row[i]))
+                    row[i].extend(self.k_shingle(row[i]))
 
             yield row
 
@@ -257,7 +257,7 @@ class FeatureEncoder(Etc):
         self._grow = grow_vocab and self.vocabulary is not None
 
     def _multirow_token_generator(self, row):
-        template = '{}={}'
+        template = '{:s}={:s}'
 
         for col in self.text_columns:
             name = self.names[col]
