@@ -7,10 +7,12 @@
 """
 
 import logging
-from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.feature_selection import SelectKBest, chi2, RFE
 from numpy import diff, ones, cumsum, where
 from scipy.sparse import csc_matrix
-from .data import load_vocabulary, save_index, load_index, save_vocabulary
+from .data import load_vocabulary, save_index, load_index, save_vocabulary, get_n_cols
+from sklearn.svm import LinearSVC
+
 
 L = logging.getLogger(__name__)
 
@@ -29,6 +31,9 @@ def select_features(args):
 
     if args.select > 0:
         data = select_best(args.select, data, vocabulary)
+
+    if args.eliminate > 0:
+        data = eliminate_words(args.eliminate, data, vocabulary)
 
     save_index(data, args.new_index)
 
@@ -50,10 +55,21 @@ def drop_words(min_df, data, vocabulary=None):
     df = diff(csc_matrix(data.index, copy=False).indptr)  # document frequency
     mask = ones(len(df), dtype=bool)  # mask: columns that can/cannot stay
     mask &= df >= min_df  # create a "mask" of columns above cutoff
-    new_idx = cumsum(mask) - 1  # new indices (with array len as old)
     keep = where(mask)[0]  # determine which columns to keep
     data = data._replace(index=data.index[:, keep])  # drop unused columns
-    prune(vocabulary, mask, new_idx)
+    prune(vocabulary, mask)
+    return data
+
+
+def eliminate_words(k, data, vocabulary=None, steps=100):
+    L.debug("recursively eliminating features down to %s", k)
+    estimator = LinearSVC(penalty='l2', loss='hinge', class_weight='auto')
+    step = (get_n_cols(data) - k) // steps + 1
+    selector = RFE(estimator, k, step=step)
+    selector = selector.fit(data.index, data.labels)
+    mask = selector.support_
+    data = data._replace(index=data.index[:, mask])
+    prune(vocabulary, mask)
     return data
 
 
@@ -71,15 +87,16 @@ def select_best(k, data, vocabulary=None):
     selector = SelectKBest(chi2, k=k)
     selector.fit(data.index, data.labels)
     mask = selector._get_support_mask()
-    new_idx = cumsum(mask) - 1  # new indices (with array len as old)
-    data = data._replace(index=data.index[:, mask])  # drop unused columns
-    prune(vocabulary, mask, new_idx)
+    data = data._replace(index=data.index[:, mask])
+    prune(vocabulary, mask)
     return data
 
 
-def prune(vocabulary, mask, new_idx):
+def prune(vocabulary, mask):
     """Clean up the vocabulary with the given mask and new indices."""
     if vocabulary:
+        new_idx = cumsum(mask) - 1  # new indices (with array len as old)
+
         for word in list(vocabulary.keys()):
             idx = vocabulary[word]
 
