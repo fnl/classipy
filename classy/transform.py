@@ -341,7 +341,7 @@ class FeatureEncoder(Etc):
 
             pointers.append(len(indices))
 
-            if len(pointers) % 1000:
+            if len(pointers) % 100 == 0:
                 L.info("processed %s documents", len(pointers))
 
         if self.vocabulary is None or self._grow:
