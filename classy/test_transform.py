@@ -1,5 +1,6 @@
 from unittest import TestCase
-from classy.transform import Transformer, AnnotationTransformer, FeatureEncoder
+from classy.transform import NGramTransformer, AnnotationTransformer, FeatureEncoder, \
+    KShingleTransformer
 from classy.etbase import Etc
 from scipy.sparse import csr_matrix
 from numpy import int32
@@ -31,7 +32,7 @@ class Rows(Etc):
             yield [2, ["token3", "token4"], "col3", "col4"]
 
 
-class TestTransformer(TestCase):
+class TestNGramTransformer(TestCase):
 
     tokensA = [chr(i) for i in range(ord('a'), ord('d'))]
     tokensA.append('.')
@@ -41,77 +42,46 @@ class TestTransformer(TestCase):
 
     def test_setup(self):
         s = Sentinel()
-        t = Transformer(s)
+        t = NGramTransformer(s)
         self.assertEqual(s, t.rows)
-        self.assertEqual(2, t.N)
-        self.assertEqual(1, t.K)
+        self.assertEqual(1, t.N)
         self.assertEqual(None, t.text_columns)
 
     def test_unigram(self):
-        expected = TestTransformer.tokensA + TestTransformer.tokensB
-        t = Transformer(Sentinel(), n=1)
+        expected = TestNGramTransformer.tokensA + TestNGramTransformer.tokensB
+        t = NGramTransformer(Sentinel(), n=1)
         self.assertListEqual(expected,
-                             list(t.n_gram(TestTransformer.segments)))
+                             list(t.n_gram(TestNGramTransformer.segments)))
 
     def test_bigram(self):
-        expected = TestTransformer.tokensA + [
-            'a b', 'b c', 'c .'
-        ] + TestTransformer.tokensB + [
-            'A B', 'B C', 'C .'
+        expected = TestNGramTransformer.tokensA + [
+            'a_b', 'b_c', 'c_.'
+        ] + TestNGramTransformer.tokensB + [
+            'A_B', 'B_C', 'C_.'
         ]
-        t = Transformer(Sentinel(), n=2)
+        t = NGramTransformer(Sentinel(), n=2)
         self.assertListEqual(expected,
-                             list(t.n_gram(TestTransformer.segments)))
+                             list(t.n_gram(TestNGramTransformer.segments)))
 
     def test_trigram(self):
-        expected = TestTransformer.tokensA + [
-            'a b', 'b c', 'c .'
+        expected = TestNGramTransformer.tokensA + [
+            'a_b', 'b_c', 'c_.'
         ] + [
-            'a b c', 'b c .'
-        ] + TestTransformer.tokensB + [
-            'A B', 'B C', 'C .'
+            'a_b_c', 'b_c_.'
+        ] + TestNGramTransformer.tokensB + [
+            'A_B', 'B_C', 'C_.'
         ] + [
-            'A B C', 'B C .'
+            'A_B_C', 'B_C_.'
         ]
-        t = Transformer(Sentinel(), n=3)
+        t = NGramTransformer(Sentinel(), n=3)
         self.assertListEqual(expected,
-                             list(t.n_gram(TestTransformer.segments)))
-
-    def test_unishingle(self):
-        expected = []
-        t = Transformer(Sentinel(), k=1)
-        self.assertListEqual(expected,
-                             list(t.k_shingle(TestTransformer.segments)))
-
-    def test_bishingle(self):
-        expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
-                    'B_C', 'B_a', 'B_b', 'B_c',
-                    'C_a', 'C_b', 'C_c',
-                    'a_b', 'a_c',
-                    'b_c']
-        t = Transformer(Sentinel(), k=2)
-        self.assertListEqual(expected,
-                             list(t.k_shingle(TestTransformer.segments)))
-
-    def test_trishingle(self):
-        expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
-                    'B_C', 'B_a', 'B_b', 'B_c',
-                    'C_a', 'C_b', 'C_c',
-                    'a_b', 'a_c', 'b_c',
-                    'A_B_C', 'A_B_a', 'A_B_b', 'A_B_c', 'A_C_a',
-                    'A_C_b', 'A_C_c', 'A_a_b', 'A_a_c', 'A_b_c',
-                    'B_C_a', 'B_C_b', 'B_C_c', 'B_a_b', 'B_a_c', 'B_b_c',
-                    'C_a_b', 'C_a_c', 'C_b_c',
-                    'a_b_c']
-        t = Transformer(Sentinel(), k=3)
-        self.assertListEqual(expected,
-                             list(t.k_shingle(TestTransformer.segments)))
+                             list(t.n_gram(TestNGramTransformer.segments)))
 
     def test_extract(self):
-        row = [TestTransformer.segments, []]
-        expected = [TestTransformer.tokensA +
-                    TestTransformer.tokensB, []]
-        t = Transformer(Sentinel(), n=1)
+        row = [TestNGramTransformer.segments, []]
+        expected = [TestNGramTransformer.tokensA +
+                    TestNGramTransformer.tokensB, ['~void~']]
+        t = NGramTransformer(Sentinel(), n=1)
 
         for i in range(len(row)):
             t._extract(row, i)
@@ -119,16 +89,78 @@ class TestTransformer(TestCase):
         self.assertListEqual(expected, row)
 
     def test_iter(self):
-        expected = [1, TestTransformer.tokensA +
-                    TestTransformer.tokensB]
+        expected = [1, TestNGramTransformer.tokensA +
+                    TestNGramTransformer.tokensB]
         n = -1
-        rows = Rows([[1, TestTransformer.segments]] * 3)
+        rows = Rows([[1, TestNGramTransformer.segments]] * 3)
 
-        for n, row in enumerate(Transformer(rows, n=1)):
+        for n, row in enumerate(NGramTransformer(rows, n=1)):
             self.assertListEqual(expected, row)
 
         self.assertEqual(2, n)
 
+
+class TestKShingleTransformer(TestCase):
+
+    tokensA = [chr(i) for i in range(ord('a'), ord('d'))]
+    tokensA.append('.')
+    tokensB = [chr(i) for i in range(ord('A'), ord('D'))]
+    tokensB.append('.')
+    segments = tokensA + tokensB
+
+    def test_setup(self):
+        s = Sentinel()
+        t = KShingleTransformer(s)
+        self.assertEqual(s, t.rows)
+        self.assertEqual(1, t.K)
+        self.assertEqual(None, t.text_columns)
+
+    def test_unishingle(self):
+        expected = []
+        t = KShingleTransformer(Sentinel(), k=1)
+        self.assertListEqual(expected,
+                             list(t.k_shingle(TestKShingleTransformer.segments)))
+
+    def test_bishingle(self):
+        expected = ['.+A', '.+B', '.+C', '.+a', '.+b', '.+c',
+                    'A+B', 'A+C', 'A+a', 'A+b', 'A+c',
+                    'B+C', 'B+a', 'B+b', 'B+c',
+                    'C+a', 'C+b', 'C+c',
+                    'a+b', 'a+c',
+                    'b+c']
+        t = KShingleTransformer(Sentinel(), k=2)
+        self.assertListEqual(expected,
+                             list(t.k_shingle(TestKShingleTransformer.segments)))
+
+    def test_trishingle(self):
+        expected = ['.+A', '.+B', '.+C', '.+a', '.+b', '.+c',
+                    'A+B', 'A+C', 'A+a', 'A+b', 'A+c',
+                    'B+C', 'B+a', 'B+b', 'B+c',
+                    'C+a', 'C+b', 'C+c',
+                    'a+b', 'a+c', 'b+c',
+                    '.+A+B', '.+A+C', '.+A+a', '.+A+b', '.+A+c',
+                    '.+B+C', '.+B+a', '.+B+b', '.+B+c',
+                    '.+C+a', '.+C+b', '.+C+c',
+                    '.+a+b', '.+a+c', '.+b+c',
+                    'A+B+C', 'A+B+a', 'A+B+b', 'A+B+c', 'A+C+a',
+                    'A+C+b', 'A+C+c', 'A+a+b', 'A+a+c', 'A+b+c',
+                    'B+C+a', 'B+C+b', 'B+C+c', 'B+a+b', 'B+a+c', 'B+b+c',
+                    'C+a+b', 'C+a+c', 'C+b+c',
+                    'a+b+c']
+        t = KShingleTransformer(Sentinel(), k=3)
+        self.assertListEqual(expected,
+                             list(t.k_shingle(TestKShingleTransformer.segments)))
+
+    def test_iter(self):
+        expected = [1, TestKShingleTransformer.tokensA +
+                    TestKShingleTransformer.tokensB]
+        n = -1
+        rows = Rows([[1, TestKShingleTransformer.segments]] * 3)
+
+        for n, row in enumerate(KShingleTransformer(rows)):
+            self.assertListEqual(expected, row)
+
+        self.assertEqual(2, n)
 
 class TestAnnotationTransformer(TestCase):
 
@@ -137,21 +169,22 @@ class TestAnnotationTransformer(TestCase):
     def test_init(self):
         rows = Rows()
         groups = TestAnnotationTransformer.groups
-        at = AnnotationTransformer(rows, groups, 2, 3)
-        self.assertTupleEqual((3, 2), at.dropped_cols)
+        at = AnnotationTransformer(rows, groups)
         self.assertDictEqual(groups, at.groups)
 
     def test_iter(self):
         rows = Rows()
         groups = TestAnnotationTransformer.groups
-        at = AnnotationTransformer(rows, groups, 2, 3)
+        at = AnnotationTransformer(rows, groups)
         at = iter(at)
         row = next(at)
-        self.assertListEqual([1, ["col3:col4:token1",
-                                  "col3:col4:token2"]], row)
+        self.assertListEqual([1, ['token1', 'token2', 'attribute#col3:token1',
+                                  'attribute#col3:token2', 'label#col4:token1',
+                                  'label#col4:token2'], 'col3', 'col4'], row)
         row = next(at)
-        self.assertListEqual([2, ["col3:col4:token3",
-                                  "col3:col4:token4"]], row)
+        self.assertListEqual([2, ['token3', 'token4', 'attribute#col3:token3',
+                                  'attribute#col3:token4', 'label#col4:token3',
+                                  'label#col4:token4'], 'col3', 'col4'], row)
 
     def test_index_error_annotation_col(self):
         rows = Rows()
@@ -182,13 +215,6 @@ class TestAnnotationTransformer(TestCase):
         self.assertRaisesRegex(AssertionError,
                                r'column 2 \[attribute\] not a known token column: \(1,\)',
                                AnnotationTransformer, rows, groups)
-
-    def test_index_error_dropped_cols(self):
-        rows = Rows()
-        groups = TestAnnotationTransformer.groups
-        self.assertRaisesRegex(RuntimeError,
-                               r"names=\('id', 'text', 'attribute', 'label'\), dropped_columns=\(3, 4\); illegal dropped columns index\?",
-                               AnnotationTransformer, rows, groups, 3, 4)
 
 
 class TestFeatureEncoder(TestCase):

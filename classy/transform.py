@@ -10,6 +10,7 @@ import logging
 import itertools
 from array import array
 from classy.etbase import Etc
+from classy.extract import Extractor
 from scipy.sparse import csr_matrix
 from collections import defaultdict
 from numpy import int32, ones, zeros
@@ -20,33 +21,26 @@ L = logging.getLogger(__name__)
 # https://github.com/scikit-learn/scikit-learn/blob/a95203b/sklearn/feature_extraction/text.py#L724
 
 
-class Transformer(Etc):
+class NGramTransformer(Etc):
 
     """
     Takes text from an Extractor that already has segmented and tokenized the
-    text and converts the segmented tokens into a flat n-gram and k-shingle
-    list.
+    text and converts the segmented tokens into a flat n-gram list.
     """
 
-    def __init__(self, extractor, n=2, k=1):
+    def __init__(self, extractor, n=1):
         """
         :param extractor: the input Extractor stream
         :param n: the size of the n-grams to produce
                   (``1`` implies unigrams only)
-        :param k: the size of the k-shingles to produce
-                  (``1`` implies no shingling)
         """
-        super(Transformer, self).__init__(extractor)
-        L.debug("N=%s, K=%s", n, k)
+        super(NGramTransformer, self).__init__(extractor)
+        L.debug("N=%s", n)
         self.rows = iter(extractor)
         self.N = int(n)
-        self.K = int(k)
 
         if self.N < 1:
             raise ValueError("N not a positive number")
-
-        if self.K < 1:
-            raise ValueError("K not a positive number")
 
     def __iter__(self):
         for row in self.rows:
@@ -56,9 +50,7 @@ class Transformer(Etc):
             yield row
 
     def _extract(self, row, i):
-        n_grams = self.n_gram(row[i])
-        shingles = self.k_shingle(row[i])
-        row[i] = list(itertools.chain(n_grams, shingles))
+        row[i] = list(self.n_gram(row[i]))
 
         if len(row[i]) == 0:  # mark void fields as such
             row[i] = ['~void~']
@@ -69,7 +61,7 @@ class Transformer(Etc):
         The n-gram size, ``N``, is configured at instance level.
 
         :param token_segments: a list of a list of strings (tokens)
-        :return: a n-gram generator; tokens are joined by space (`` ``).
+        :return: a n-gram generator; tokens are joined by underscore (``_``).
         """
         ns = range(1, self.N + 1)
 
@@ -78,19 +70,81 @@ class Transformer(Etc):
                 for i in range(len(segment) - n + 1):
                     yield "_".join(segment[i:i + n])
 
-    def k_shingle(self, token_segments):
+
+class FeatureTransformer(Etc):
+
+    """
+    Takes a transformer and *appends* annotations to each text field.
+
+    Appending is done by adding the a string consisting of the name of the annotation column
+    and the annotation itself, separated by a colon character (``:``).
+    """
+
+    def __init__(self, transformer, columns):
+        """
+        :param transformer: the input Transformer stream
+        :param columns: weave annotation columns into the token lists
+                        as additional "tokens"; (0-based)
+        """
+        super(FeatureTransformer, self).__init__(transformer)
+        L.debug("columns=%s", columns)
+        self.rows = iter(transformer)
+        self.annotation_columns = list(int(c) for c in columns)
+
+    def __iter__(self):
+        for row in self.rows:
+            for txt in self.text_columns:
+                tokens = row[txt]
+
+                for col in self.annotation_columns:
+                    tokens.append("{:s}#{:s}".format(self.names[col], row[col]))
+
+            yield row
+
+
+class KShingleTransformer(Etc):
+
+    """
+    Takes text from a Transformer where every text field is already in the form of a list of tokens
+    and converts it into a k-shingle list (i.e., generating all k-combinations of tokens).
+
+    Should be used *after* an AnnotationTransformer to join tokens and annotations.
+    """
+
+    def __init__(self, extractor, k=1):
+        """
+        :param extractor: the input Extractor stream
+        :param k: the size of the k-shingles to produce
+                  (``1`` implies no shingling)
+        """
+        super(KShingleTransformer, self).__init__(extractor)
+        L.debug("K=%s", k)
+        self.rows = iter(extractor)
+        self.K = int(k)
+
+        if self.K < 1:
+            raise ValueError("K not a positive number")
+
+    def __iter__(self):
+        for row in self.rows:
+            if self.K > 1:
+                for i in self.text_columns:
+                    row[i] = list(self.k_shingle(row[i]))
+
+            yield row
+
+    def k_shingle(self, tokens):
         """
         Yield unique k-shingles by creating all possible combinations of
-        unique words (tokens) in ``token_segments``.
+        unique words (tokens) in ``tokens``.
         The k-shingle size, ``K``, is configured at instance level.
         Note that the order in which the words appeared in the text does not
         matter (unlike with n-grams).
 
-        :param token_segments: a list of a list of strings (tokens)
-        :return: a k-shingle generator; tokens are joined by underscore (``_``)
+        :param tokens: the list of tokens (strings)
+        :return: a k-shingle generator; tokens are joined by a plus (``+``)
         """
-        words = {w for s in token_segments for w in s if w.isalnum()}
-        words = list(sorted(words))  # sorted to ensure uniqueness
+        words = list(sorted(set(tokens)))  # sorted to ensure uniqueness
 
         for k in range(2, self.K + 1):
             for shingle in itertools.combinations(words, k):
@@ -100,15 +154,15 @@ class Transformer(Etc):
 class AnnotationTransformer(Etc):
 
     """
-    Takes bag-of-word text arrays and attaches annotations to each item by
-    prefixing them with reference defined in another column representing some
-    external text annotation.
+    Takes a transformer and *attaches* annotations to each *token* by
+    prefixing them with that annotation.
 
-    Attachment is done by prefixing the text target column with the string in
-    the annotation source column, separated by a colon character (``:``).
+    Attachment is done by prefixing the text target column with the name of the annotation
+    column followed by a hash (``#``), the string in the annotation source column, and
+    separated from the token by a colon character (``:``).
     """
 
-    def __init__(self, transformer, groups, *dropped_columns):
+    def __init__(self, transformer, groups):
         """
         :param transformer: the input Transformer stream
         :param groups: a dictionary where the keys are the text target column
@@ -116,33 +170,14 @@ class AnnotationTransformer(Etc):
                        example ``{1: (2, 3)}`` would annotate the second
                        (text) column with the annotations found in the third
                        and fourth columns (i.e., using 0-based column counts)
-        :param dropped_columns: 0-based counts of columns to be dropped from
-                                the stream after processing (e.g., to remove
-                                the merged annotation columns)
         """
         super(AnnotationTransformer, self).__init__(transformer)
-        L.debug("groups=%s, dropped_columns=%s", groups, dropped_columns)
+        L.debug("groups=%s", groups)
         self.rows = iter(transformer)
-        self.dropped_cols = tuple(
-            int(c) for c in sorted(set(dropped_columns), reverse=True)
-        )
         self.groups = {
             int(token_col): tuple(int(c) for c in ann_cols)
             for token_col, ann_cols in groups.items()
         }
-        names = list(self.names)
-
-        for col in self.dropped_cols:
-            try:
-                del names[col]
-            except IndexError as ex:
-                msg = "names={}, dropped_columns={}; " \
-                      "illegal dropped columns index?"
-                err = msg.format(self.names, dropped_columns)
-                raise RuntimeError(err) from ex
-
-        if len(self.dropped_cols):
-            self.names = names
 
         for col in self.groups:
             msg = "column {} [{}] not a known token column: {}"
@@ -154,7 +189,7 @@ class AnnotationTransformer(Etc):
         for row in self.rows:
             for token_col, annotation_cols in self.groups.items():
                 try:
-                    annotations = ['{}#{}'.format(self.names[c], row[c])
+                    annotations = ['{:s}#{:s}'.format(self.names[c], row[c])
                                    for c in annotation_cols]
                 except IndexError as ex1:
                     msg = "len(row)={}, but annotation_col_indices={}"
@@ -169,7 +204,8 @@ class AnnotationTransformer(Etc):
                     ann_tokens = []
 
                     for name in annotations:
-                        ann_tokens.extend("{}:{}".format(name, token) for token in row[token_col])
+                        ann_tokens.extend("{:s}:{:s}".format(name, token) for
+                                          token in row[token_col])
 
                     row[token_col].extend(ann_tokens)
                 except IndexError as ex3:
@@ -177,14 +213,6 @@ class AnnotationTransformer(Etc):
                     raise RuntimeError(
                         msg.format(len(row), token_col, self._names[token_col])
                     ) from ex3
-
-            for col in self.dropped_cols:
-                try:
-                    del row[col]
-                except IndexError as ex4:
-                    raise RuntimeError(
-                        "row has no column {} to drop".format(col)
-                    ) from ex4
 
             yield row
 
@@ -205,7 +233,7 @@ class FeatureEncoder(Etc):
     """
 
     def __init__(self, transformer, vocabulary=None, grow_vocab=False,
-                 id_col=0, label_col=-1, feature_cols=None):
+                 id_col=0, label_col=-1):
         """
         :param transformer: the input Transformer stream
         :param vocabulary: optionally, use a predefined vocabulary
@@ -215,20 +243,17 @@ class FeatureEncoder(Etc):
                           based; None implies there is no label column present)
         :param grow_vocab: expand the vocabulary (if given, instead of ignoring
                            missing words)
-        :param feature_cols: weave annotation columns into the feature stream
-                             as additional "tokens"; (0-based)
         """
         super(FeatureEncoder, self).__init__(transformer)
-        L.debug("vocabulary=%s grow=%s id_col=%s label_col=%s feature_cols=%s",
+        L.debug("vocabulary=%s grow=%s id_col=%s label_col=%s",
                 "None" if vocabulary is None else len(vocabulary),
-                grow_vocab, id_col, label_col, feature_cols)
+                grow_vocab, id_col, label_col)
         self.rows = iter(transformer)
         self.id_col = None if id_col is None else int(id_col)
         self.label_col = None if label_col is None else int(label_col)
         self.vocabulary = None if vocabulary is None else dict(vocabulary)
         self.text_ids = []
         self.labels = []
-        self.feature_cols = feature_cols if feature_cols else []
         self._grow = grow_vocab and self.vocabulary is not None
 
     def _multirow_token_generator(self, row):
@@ -240,16 +265,8 @@ class FeatureEncoder(Etc):
             for token in row[col]:
                 yield template.format(name, token)
 
-        for col in self.feature_cols:
-            name = self.names[col]
-            yield "{}#{}".format(name, row[col])
-
     def _unirow_token_generator(self, row):
         yield from row[self.text_columns[0]]
-
-        for col in self.feature_cols:
-            name = self.names[col]
-            yield "{}#{}".format(name, row[col])
 
     def __iter__(self):
         vocab = self.vocabulary
@@ -325,3 +342,21 @@ class FeatureEncoder(Etc):
                             dtype=int32)
         matrix.sum_duplicates()
         return matrix
+
+
+def transform_input(generator, args):
+    stream = Extractor(generator, has_title=args.title,
+                       lower=args.lowercase, decap=args.decap)
+    stream = NGramTransformer(stream, n=args.n_grams)
+
+    if args.feature:
+        stream = FeatureTransformer(stream, args.feature)
+
+    if args.k_shingles > 1:
+        stream = KShingleTransformer(stream, k=args.k_shingles)
+
+    if args.annotate:
+        groups = {i: args.annotate for i in stream.text_columns}
+        stream = AnnotationTransformer(stream, groups)
+
+    return stream

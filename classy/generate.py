@@ -13,7 +13,8 @@ from numpy import zeros
 from scipy.sparse import vstack, hstack
 from .data import save_index, save_vocabulary, make_data, load_vocabulary
 from .extract import Extractor, row_generator, row_generator_from_file
-from .transform import Transformer, AnnotationTransformer, FeatureEncoder
+from .transform import NGramTransformer, AnnotationTransformer, FeatureEncoder, KShingleTransformer, \
+    FeatureTransformer, transform_input
 from .select import drop_words, select_best
 
 L = logging.getLogger(__name__)
@@ -138,14 +139,7 @@ def _do(generator, args, vocab=None, grow=False):
                  only has an effect if there is an actual vocabulary given
     :return: the inverted index, vocabulary, labels, and text IDs
     """
-    stream = Extractor(generator, has_title=args.title,
-                       lower=args.lowercase, decap=args.decap)
-    stream = Transformer(stream, n=args.n_grams, k=args.k_shingles)
-
-    if args.annotate:
-        groups = {i: args.annotate for i in stream.text_columns}
-        stream = AnnotationTransformer(stream, groups)
-
+    stream = transform_input(generator, args)
     label_col = None if args.no_label else -1
 
     if args.label_first:
@@ -159,8 +153,10 @@ def _do(generator, args, vocab=None, grow=False):
         id_col = 1
 
     stream = FeatureEncoder(stream, vocabulary=vocab, grow_vocab=grow,
-                            id_col=id_col, label_col=label_col, feature_cols=args.feature)
+                            id_col=id_col, label_col=label_col)
     matrix = stream.make_sparse_matrix()
     labels = stream.labels if stream.labels else None
     text_ids = stream.text_ids if stream.text_ids else None
     return matrix, stream.vocabulary, labels, text_ids
+
+

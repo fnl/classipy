@@ -6,9 +6,13 @@
 
 import argparse
 import logging
-from classy import CLASSIFIERS, print_labels, \
-    generate_data, select_features, learn_model, evaluate_model, predict_labels, \
-    print_vocabulary, print_doc_ids
+from classy.classifiers import CLASSIFIERS
+from classy.evaluate import evaluate_model
+from classy.generate import generate_data
+from classy.helpers import print_labels, print_vocabulary, print_doc_ids
+from classy.learn import learn_model
+from classy.predict import predict_labels
+from classy.select import select_features
 
 
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"

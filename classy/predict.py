@@ -12,7 +12,9 @@ from classy.generate import fix_column_offset
 from sklearn.externals import joblib
 from .data import load_index, get_n_rows, load_vocabulary
 from .extract import row_generator, row_generator_from_file, Extractor
-from .transform import Transformer, AnnotationTransformer, FeatureEncoder
+from .transform import NGramTransformer, AnnotationTransformer, FeatureEncoder, KShingleTransformer, \
+    FeatureTransformer, transform_input
+
 
 L = logging.getLogger(__name__)
 
@@ -86,13 +88,7 @@ def stream_predictor(args):
 
 
 def predict_from(text, args, vocab):
-    stream = Extractor(text, has_title=args.title,
-                       lower=args.lowercase, decap=args.decap)
-    stream = Transformer(stream, n=args.n_grams, k=args.k_shingles)
-
-    if args.annotate:
-        groups = {i: args.annotate for i in stream.text_columns}
-        stream = AnnotationTransformer(stream, groups, *args.annotate)
+    stream = transform_input(text, args)
 
     if args.no_id:
         id_col = None
