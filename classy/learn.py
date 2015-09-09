@@ -48,6 +48,10 @@ def make_pipeline(args):
     if data.labels is None or len(data.labels) == 0:
         raise RuntimeError("input data has no labels to learn from")
 
+    if args.classifer == 'rbf':
+        # make a dense matrix
+        data = data._replace(index=data.index.toarray())
+
     classifier, parameters = build(args.classifier, data, args.jobs)
 
     if hasattr(args, "grid_search") and args.grid_search:
