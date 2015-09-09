@@ -15,7 +15,7 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
 from .classifiers import build, tfidf_transform, maxent, svm
 from .data import load_index, make_inverted_vocabulary
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import Normalizer
 
 
 L = logging.getLogger(__name__)
@@ -76,7 +76,8 @@ def make_pipeline(args):
 
     if args.classifier == "rbf":
         L.debug("scaling features for the RBF kernel")
-        pipeline.append(('scale', StandardScaler(with_mean=False)))
+        pipeline.append(('scale', Normalizer()))
+        parameters['scale__norm'] = ['l1', 'l2']
 
     if hasattr(args, "grid_search") and args.grid_search:
         L.debug("grid-search parameters: %s", parameters)
