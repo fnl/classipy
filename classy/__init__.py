@@ -14,3 +14,7 @@ def print_labels(args):
 def print_vocabulary(args):
     for word in load_vocabulary(args.vocabulary):
         print(word)
+
+
+def print_doc_ids(args):
+    print('\n'.join(load_index(args.index).text_ids))

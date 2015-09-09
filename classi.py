@@ -8,7 +8,7 @@ import argparse
 import logging
 from classy import CLASSIFIERS, print_labels, \
     generate_data, select_features, learn_model, evaluate_model, predict_labels, \
-    print_vocabulary
+    print_vocabulary, print_doc_ids
 
 
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"
@@ -106,10 +106,13 @@ labels = commands.add_parser('labels', help='list all label names (classes) in a
 labels.add_argument('index', metavar='INDEX', help="inverted index file")
 labels.set_defaults(func=print_labels)
 
-labels = commands.add_parser('vocabulary', help='list all vocabulary words (features)', aliases=['v', 'vo', 'voc', 'voca', 'vocab'])
-labels.add_argument('vocabulary', metavar='VOCAB', help="vocabulary file")
-labels.set_defaults(func=print_vocabulary)
+vocabulary = commands.add_parser('vocabulary', help='list all vocabulary words (features)', aliases=['v', 'vo', 'voc', 'voca', 'vocab'])
+vocabulary.add_argument('vocabulary', metavar='VOCAB', help="vocabulary file")
+vocabulary.set_defaults(func=print_vocabulary)
 
+documents = commands.add_parser('documents', help='list all document IDs', aliases=['d', 'do', 'doc', 'docs', 'ids'])
+documents.add_argument('index', metavar='INDEX', help="inverted index file")
+documents.set_defaults(func=print_doc_ids)
 
 
 # Argument Parsing
