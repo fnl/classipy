@@ -17,15 +17,18 @@ from sklearn.svm import LinearSVC, SVC
 CLASSIFIERS = {}
 
 
-def build(option, data, jobs=-1):
+def build(option, data, jobs=-1, presets=None):
     """
     Create a classifier and add a one-vs-rest wrapper around it
     if the data is multinomial.
 
     :return: A (classifier instance, parameter dictionary) tuple
     """
+    if presets is None:
+        presets = {}
+
     try:
-        classy = CLASSIFIERS[option]()
+        classy = CLASSIFIERS[option](**presets)
     except KeyError:
         msg = 'unknown classifier {}'
         raise RuntimeError(msg.format(option))
@@ -36,22 +39,19 @@ def build(option, data, jobs=-1):
         return classy
 
 
-def tfidf_transform(params):
-    tfidf = TfidfTransformer(
-        norm='l2', sublinear_tf=True, smooth_idf=True, use_idf=True
-    )
-    params.update({
+def tfidf_transform(sublinear_tf=True, **presets):
+    return TfidfTransformer(sublinear_tf=sublinear_tf, **presets), {
         'transform__norm': ['l1', 'l2'],
         'transform__sublinear_tf': [True, False],
         # 'transform__use_idf': [True, False],
         # Lidstone-like smoothing cannot be disabled:
         # 'transform__smooth_idf': [True, False],  # divides by zero...
-    })
-    return tfidf
+    }
 
 
-def ridge():
-    return RidgeClassifier(max_iter=1e4, class_weight='auto', solver='auto'), {
+def ridge(max_iter=1e4, class_weight='auto', solver='auto', **presets):
+    return RidgeClassifier(max_iter=max_iter, class_weight=class_weight, solver=solver,
+                           **presets), {
         'classify__alpha': [1e3, 1e1, 1, 1e-1, 1e-2],
         'classify__normalize': [True, False],
         'classify__tol': [.05, 1e-3, 1e-6],
@@ -62,9 +62,9 @@ def ridge():
 CLASSIFIERS[ridge.__name__] = ridge
 
 
-def svm(loss='hinge', max_iter=1e4, class_weight='auto', **keys):
+def svm(loss='hinge', max_iter=1e4, class_weight='auto', **presets):
     return LinearSVC(loss=loss, max_iter=max_iter, class_weight=class_weight,
-                     **keys), {
+                     **presets), {
         'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
         'classify__loss': ['hinge', 'squared_hinge'],
         'classify__intercept_scaling': [10., 1., .1],
@@ -76,8 +76,8 @@ def svm(loss='hinge', max_iter=1e4, class_weight='auto', **keys):
 CLASSIFIERS[svm.__name__] = svm
 
 
-def rbf(max_iter=-1, cache_size=1000, class_weight='auto', **keys):
-    return SVC(max_iter=max_iter, cache_size=cache_size, class_weight=class_weight, **keys), {
+def rbf(max_iter=-1, cache_size=1000, class_weight='auto', **presets):
+    return SVC(max_iter=max_iter, cache_size=cache_size, class_weight=class_weight, **presets), {
         'classify__C': [1e3, 5e1, 1, 1e-1, 1e-2],
         'classify__tol': [.05, 1e-4, 1e-8],
         # 'classify__class_weight': ['auto', None],
@@ -86,9 +86,9 @@ def rbf(max_iter=-1, cache_size=1000, class_weight='auto', **keys):
 CLASSIFIERS[rbf.__name__] = rbf
 
 
-def maxent(max_iter=1e4, class_weight='auto', **keys):
+def maxent(max_iter=1e4, class_weight='auto', **presets):
     return LogisticRegression(max_iter=max_iter, class_weight=class_weight,
-                              **keys), {
+                              **presets), {
         'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
         'classify__intercept_scaling': [10, 1, .1],
         'classify__penalty': ['l1', 'l2'],
@@ -99,10 +99,12 @@ def maxent(max_iter=1e4, class_weight='auto', **keys):
 CLASSIFIERS[maxent.__name__] = maxent
 
 
-def randomforest():
-    return RandomForestClassifier(n_estimators=40, max_depth=25,
-                                  criterion='gini', max_features='auto',
-                                  class_weight='auto', oob_score=False), {
+def randomforest(n_estimators=40, max_depth=25, criterion='gini', max_features='auto',
+                 class_weight='auto', oob_score=False, **presets):
+    return RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth,
+                                  criterion=criterion, max_features=max_features,
+                                  class_weight=class_weight, oob_score=oob_score,
+                                  **presets), {
         'classify__n_estimators': [80, 40, 20, 10],
         'classify__max_depth': [100, 25, 5, 2],
         # 'classify__class_weight': ['auto', None],
@@ -114,8 +116,8 @@ def randomforest():
 CLASSIFIERS[randomforest.__name__] = randomforest
 
 
-def multinomial():
-    return MultinomialNB(), {
+def multinomial(**presets):
+    return MultinomialNB(**presets), {
         # NB: class_prior=None is like class_weight='auto'
         'classify__alpha': [10., 1., 0., .1, .01, .001],
         'classify__fit_prior': [True, False],
@@ -124,8 +126,8 @@ def multinomial():
 CLASSIFIERS[multinomial.__name__] = multinomial
 
 
-def bernoulli():
-    return BernoulliNB(), {
+def bernoulli(**presets):
+    return BernoulliNB(**presets), {
         # NB: class_prior=None is like class_weight='auto'
         'classify__alpha': [10., 1., 0., .1, .01, .001],
         'classify__fit_prior': [True, False],

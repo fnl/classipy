@@ -44,24 +44,54 @@ def learn_model(args):
 def make_pipeline(args):
     pipeline = []
     data = load_index(args.index)
+    presets = {'classify': {},
+               'filter': {},
+               'select': {},
+               'scale': {},
+               'transform': {}}
 
     if data.labels is None or len(data.labels) == 0:
         raise RuntimeError("input data has no labels to learn from")
 
-    classifier, parameters = build(args.classifier, data, args.jobs)
+    if args.parameters:
+        for param in args.parameters.split(','):
+            key, value = param.split('=', 1)
+            name, prop = key.split('__', 1)
+            value = eval(value)
+            L.debug('preset for %s: %s=%s', name, prop, repr(value))
+
+            try:
+                presets[name][prop] = value
+            except KeyError:
+                L.error('%s not a valid preset group name', name)
+
+    classifier, parameters = build(args.classifier, data, args.jobs, presets['classify'])
 
     if hasattr(args, "grid_search") and args.grid_search:
         L.debug("filtering zero variance features "
                 "to protect from divisions by zero")
-        pipeline.append(('filter', VarianceThreshold()))
+        pipeline.append(('filter', VarianceThreshold(**presets['filter'])))
 
     if args.extract:
         L.debug("extracting features with %s",
                 "Logistic Regression" if args.classifier == "svm" else
                 "a linear SVM")
-        model, params = maxent(penalty='l1') if \
-            args.classifier == "svm" else \
-            svm(loss='squared_hinge', penalty='l1', dual=False)
+
+        if 'penalty' not in presets['select']:
+            presets['select']['penalty'] = 'l1'
+
+        if args.classifier == "svm":
+            selector = maxent
+        else:
+            if 'loss' not in presets['select']:
+                presets['select']['loss'] = 'squared_hinge'
+
+            if 'dual' not in presets['select']:
+                presets['select']['dual'] = False
+
+            selector = svm
+
+        model, params = selector(**presets['select'])
         pipeline.append(('select', model))
 
         for key, value in params.items():
@@ -72,10 +102,12 @@ def make_pipeline(args):
 
     if args.tfidf:
         L.debug("transforming features with TF-IDF")
-        pipeline.append(('transform', tfidf_transform(parameters)))
+        tfidf, params = tfidf_transform(**presets['transform'])
+        parameters.update(params)
+        pipeline.append(('transform', tfidf))
 
     L.debug("scaling features to norm")
-    pipeline.append(('scale', Normalizer()))
+    pipeline.append(('scale', Normalizer(**presets['scale'])))
     parameters['scale__norm'] = ['l1', 'l2']
 
     if hasattr(args, "grid_search") and args.grid_search:
@@ -109,7 +141,7 @@ def print_top_features(classifier, data, inverted_vocabulary):
             '", "'.join(inverted_vocabulary[top_n]),
             '", "'.join(inverted_vocabulary[worst_n]), data.label_names[0],
         ))
-    else:
+    elif hasattr(classifier, "coef_"):
         for i in range(classifier.coef_.shape[0]):
             top_n = argsort(classifier.coef_[i])[:10]
             worst_n = argsort(classifier.coef_[i])[-10:][::-1]

@@ -72,6 +72,7 @@ learn.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, help="vocabu
 learn.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
 learn.add_argument("--extract", action='store_true', help="extract features using L1-based selection with a linear model")
 learn.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default=%(default)s)")
+learn.add_argument("--parameters", '-p', type=str, help="comma-separated parameter string (e.g. \"classify__loss='hinge',scale__norm='l2',transform__sublinear_tf=True\")")
 learn.add_argument("--grid-search", '-g', action='store_true', help="run a 5xCV grid search to fit the optimal parameters before storing the model")
 learn.set_defaults(func=learn_model)
 
