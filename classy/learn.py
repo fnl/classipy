@@ -48,9 +48,9 @@ def make_pipeline(args):
                                    presets['classify'])
 
     if hasattr(args, "grid_search") and args.grid_search:
-        L.debug("filtering zero variance features "
+        L.debug("prune zero variance features "
                 "to protect from divisions by zero during grid-search")
-        pipeline.append(('filter', VarianceThreshold(**presets['filter'])))
+        pipeline.append(('prune', VarianceThreshold(**presets['prune'])))
 
     if args.tfidf:
         L.debug("transforming features with TF-IDF")
@@ -77,7 +77,7 @@ def make_pipeline(args):
 
 def make_presets(args):
     presets = {'classify': {},
-               'filter': {},
+               'prune': {},
                'select': {},
                'scale': {},
                'transform': {}}
