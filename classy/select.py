@@ -10,7 +10,8 @@ import logging
 from sklearn.feature_selection import SelectKBest, chi2, RFE
 from numpy import diff, ones, cumsum, where
 from scipy.sparse import csc_matrix
-from .data import load_vocabulary, save_index, load_index, save_vocabulary, get_n_cols
+from .data import load_vocabulary, save_index, load_index, save_vocabulary, \
+    get_n_cols
 from sklearn.svm import LinearSVC
 
 

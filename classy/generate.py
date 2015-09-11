@@ -12,9 +12,8 @@ from os import path
 from numpy import zeros
 from scipy.sparse import vstack, hstack
 from .data import save_index, save_vocabulary, make_data, load_vocabulary
-from .extract import Extractor, row_generator, row_generator_from_file
-from .transform import NGramTransformer, AnnotationTransformer, FeatureEncoder, KShingleTransformer, \
-    FeatureTransformer, transform_input
+from .extract import row_generator, row_generator_from_file
+from .transform import FeatureEncoder, transform_input
 from .select import drop_features, select_best, eliminate_features
 
 
@@ -162,5 +161,3 @@ def _do(generator, args, vocab=None, grow=False):
     labels = stream.labels if stream.labels else None
     text_ids = stream.text_ids if stream.text_ids else None
     return matrix, stream.vocabulary, labels, text_ids
-
-

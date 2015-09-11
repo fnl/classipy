@@ -16,11 +16,7 @@ from classy.select import select_features
 
 
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"
-__verison__ = "1.0"
-
-# Program Setup
-# =============
-
+__version__ = "1.0"
 
 parser = argparse.ArgumentParser(description="An AGPLv3 command-line tool for text classification.")
 parser.add_argument('--verbose', '-V', action='count', default=0, help='increase log level [WARN]')
@@ -64,12 +60,12 @@ select.add_argument("--select", '-s', default=0, metavar='S', type=int, help="se
 select.add_argument("--eliminate", '-e', default=0, metavar='E', type=int, help="recursively eliminate down to E features (default: keep all features)")
 select.set_defaults(func=select_features)
 
-
 learn = commands.add_parser('learn', help='a model from inverted index data', aliases=['l', 'le', 'lea', 'lear'])
 learn.add_argument('index', metavar='INDEX', help="inverted index input file")
 learn.add_argument('model', metavar='MODEL', help="model output file")
 learn.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, help="vocabulary file to use for (optional) feature reports")
 learn.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
+learn.add_argument("--scale", action='store_true', help="scale the features to norm")
 learn.add_argument("--filter", action='store_true', help="filter features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
 learn.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default=%(default)s)")
 learn.add_argument("--parameters", '-p', type=str, help="comma-separated parameter string (e.g. \"classify__loss='hinge',scale__norm='l2',transform__sublinear_tf=True\")")
@@ -85,6 +81,7 @@ cross_validation.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, h
 cross_validation.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default: %(default)s)")
 cross_validation.add_argument("--folds", metavar='N', default=5, type=int, help="CV folds; N must be an integer > 1; (default=%(default)s)")
 cross_validation.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
+cross_validation.add_argument("--scale", action='store_true', help="scale the features to norm")
 cross_validation.add_argument("--filter", action='store_true', help="filter features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
 evaluate.set_defaults(func=evaluate_model)
 
@@ -122,7 +119,6 @@ vocabulary.set_defaults(func=print_vocabulary)
 documents = commands.add_parser('documents', help='list all document IDs', aliases=['d', 'do', 'doc', 'docs', 'ids'])
 documents.add_argument('index', metavar='INDEX', help="inverted index file")
 documents.set_defaults(func=print_doc_ids)
-
 
 # Argument Parsing
 # ================

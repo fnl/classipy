@@ -44,7 +44,8 @@ def make_pipeline(args):
 
     pipeline = []
     presets = make_presets(args)
-    classifier, parameters = build(args.classifier, data, args.jobs, presets['classify'])
+    classifier, parameters = build(args.classifier, args.jobs,
+                                   presets['classify'])
 
     if hasattr(args, "grid_search") and args.grid_search:
         L.debug("filtering zero variance features "
@@ -57,9 +58,10 @@ def make_pipeline(args):
         pipeline.append(('transform', tfidf))
         parameters.update(params)
 
-    L.debug("scaling all features to norm")
-    pipeline.append(('scale', Normalizer(**presets['scale'])))
-    parameters['scale__norm'] = ['l1', 'l2']
+    if args.scale:
+        L.debug("scaling all features to norm")
+        pipeline.append(('scale', Normalizer(**presets['scale'])))
+        parameters['scale__norm'] = ['l1', 'l2']
 
     if args.filter:
         L.debug("filtering features with L1-penalized %s",
@@ -100,7 +102,7 @@ def make_presets(args):
 def l1_selector(args, presets):
     presets['select']['penalty'] = 'l1'
 
-    if args.classifier in ("svm", "svg", "rbf"):
+    if args.classifier in ("svm", "sgd", "rbf"):
         selector = maxent
     else:
         selector = svm
@@ -112,16 +114,13 @@ def l1_selector(args, presets):
             presets['select']['dual'] = False
 
     model, params = selector(**presets['select'])
-    clean_params = {}
+    # C's <1 lead to empty feature sets -> too much "pruning"!
+    clean_params = dict(select__C=[1e4, 1e2, 1])
 
-    for key, value in params.items():
-        key = key.replace('classify', 'select')
-
-        if not (key.endswith('__penalty') or key.endswith('__loss')):
-            clean_params[key] = value
-
-        # C's <1 lead to empty feature sets...
-        clean_params['select__C'] = [1e4, 1e2, 1]
+    for key, values in params.items():
+        if not (key.endswith('__penalty') or key.endswith('__loss') or
+                key.endswith('__C')):
+            clean_params[key.replace('classify', 'select')] = values
 
     return model, clean_params
 

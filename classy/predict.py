@@ -11,9 +11,8 @@ import sys
 from classy.generate import fix_column_offset
 from sklearn.externals import joblib
 from .data import load_index, get_n_rows, load_vocabulary
-from .extract import row_generator, row_generator_from_file, Extractor
-from .transform import NGramTransformer, AnnotationTransformer, FeatureEncoder, KShingleTransformer, \
-    FeatureTransformer, transform_input
+from .extract import row_generator, row_generator_from_file
+from .transform import FeatureEncoder, transform_input
 
 
 L = logging.getLogger(__name__)
@@ -55,7 +54,8 @@ def batch_predictor(args):
         text_ids = range(1, get_n_rows(data) + 1)
 
     if args.scores:
-        for text_id, prediction, i_scores in zip(text_ids, predictions, scores):
+        for text_id, prediction, i_scores in \
+                zip(text_ids, predictions, scores):
             if isinstance(i_scores, float):
                 i_scores = (i_scores,)
 

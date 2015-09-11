@@ -55,9 +55,9 @@ class TestNGramTransformer(TestCase):
 
     def test_bigram(self):
         expected = TestNGramTransformer.tokensA + [
-            'a_b', 'b_c', 'c_.'
+            'a+b', 'b+c'
         ] + TestNGramTransformer.tokensB + [
-            'A_B', 'B_C', 'C_.'
+            'A+B', 'B+C'
         ]
         t = NGramTransformer(Sentinel(), n=2)
         self.assertListEqual(expected,
@@ -65,13 +65,13 @@ class TestNGramTransformer(TestCase):
 
     def test_trigram(self):
         expected = TestNGramTransformer.tokensA + [
-            'a_b', 'b_c', 'c_.'
+            'a+b', 'b+c'
         ] + [
-            'a_b_c', 'b_c_.'
+            'a+b+c'
         ] + TestNGramTransformer.tokensB + [
-            'A_B', 'B_C', 'C_.'
+            'A+B', 'B+C'
         ] + [
-            'A_B_C', 'B_C_.'
+            'A+B+C'
         ]
         t = NGramTransformer(Sentinel(), n=3)
         self.assertListEqual(expected,
@@ -122,34 +122,30 @@ class TestKShingleTransformer(TestCase):
                              list(t.k_shingle(TestKShingleTransformer.segments)))
 
     def test_bishingle(self):
-        expected = ['.+A', '.+B', '.+C', '.+a', '.+b', '.+c',
-                    'A+B', 'A+C', 'A+a', 'A+b', 'A+c',
-                    'B+C', 'B+a', 'B+b', 'B+c',
-                    'C+a', 'C+b', 'C+c',
-                    'a+b', 'a+c',
-                    'b+c']
+        expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
+                    'B_C', 'B_a', 'B_b', 'B_c',
+                    'C_a', 'C_b', 'C_c',
+                    'a_b', 'a_c',
+                    'b_c']
         t = KShingleTransformer(Sentinel(), k=2)
-        self.assertListEqual(expected,
-                             list(t.k_shingle(TestKShingleTransformer.segments)))
+        self.assertListEqual(expected, list(t.k_shingle(
+            TestKShingleTransformer.segments
+        )))
 
     def test_trishingle(self):
-        expected = ['.+A', '.+B', '.+C', '.+a', '.+b', '.+c',
-                    'A+B', 'A+C', 'A+a', 'A+b', 'A+c',
-                    'B+C', 'B+a', 'B+b', 'B+c',
-                    'C+a', 'C+b', 'C+c',
-                    'a+b', 'a+c', 'b+c',
-                    '.+A+B', '.+A+C', '.+A+a', '.+A+b', '.+A+c',
-                    '.+B+C', '.+B+a', '.+B+b', '.+B+c',
-                    '.+C+a', '.+C+b', '.+C+c',
-                    '.+a+b', '.+a+c', '.+b+c',
-                    'A+B+C', 'A+B+a', 'A+B+b', 'A+B+c', 'A+C+a',
-                    'A+C+b', 'A+C+c', 'A+a+b', 'A+a+c', 'A+b+c',
-                    'B+C+a', 'B+C+b', 'B+C+c', 'B+a+b', 'B+a+c', 'B+b+c',
-                    'C+a+b', 'C+a+c', 'C+b+c',
-                    'a+b+c']
+        expected = ['A_B', 'A_C', 'A_a', 'A_b', 'A_c',
+                    'B_C', 'B_a', 'B_b', 'B_c',
+                    'C_a', 'C_b', 'C_c',
+                    'a_b', 'a_c', 'b_c',
+                    'A_B_C', 'A_B_a', 'A_B_b', 'A_B_c', 'A_C_a',
+                    'A_C_b', 'A_C_c', 'A_a_b', 'A_a_c', 'A_b_c',
+                    'B_C_a', 'B_C_b', 'B_C_c', 'B_a_b', 'B_a_c', 'B_b_c',
+                    'C_a_b', 'C_a_c', 'C_b_c',
+                    'a_b_c']
         t = KShingleTransformer(Sentinel(), k=3)
-        self.assertListEqual(expected,
-                             list(t.k_shingle(TestKShingleTransformer.segments)))
+        self.assertListEqual(expected, list(t.k_shingle(
+            TestKShingleTransformer.segments
+        )))
 
     def test_iter(self):
         expected = [1, TestKShingleTransformer.tokensA +
@@ -161,6 +157,7 @@ class TestKShingleTransformer(TestCase):
             self.assertListEqual(expected, row)
 
         self.assertEqual(2, n)
+
 
 class TestAnnotationTransformer(TestCase):
 
@@ -190,31 +187,38 @@ class TestAnnotationTransformer(TestCase):
         rows = Rows()
         groups = {1: (3, 4)}
         at = AnnotationTransformer(rows, groups)
-        self.assertRaisesRegex(RuntimeError,
-                               r'len\(row\)=4, but annotation_col_indices=\(3, 4\)',
-                               lambda: next(iter(at)))
+        self.assertRaisesRegex(
+            RuntimeError,
+            r'len\(row\)=4, but annotation_col_indices=\(3, 4\)',
+            lambda: next(iter(at))
+        )
 
     def test_wrong_annotation_col(self):
         rows = Rows()
         groups = {1: (1, 3)}
         at = AnnotationTransformer(rows, groups)
-        self.assertRaisesRegex(RuntimeError,
-                               r'not all annotation_columns=\(1, 3\) are strings',
-                               lambda: next(iter(at)))
+        self.assertRaisesRegex(
+            RuntimeError, r'not all annotation_columns=\(1, 3\) are strings',
+            lambda: next(iter(at))
+        )
 
     def test_index_error_text_col(self):
         rows = Rows()
         groups = {4: (2, 3)}
-        self.assertRaisesRegex(AssertionError,
-                               r'column 4 \[ERROR\] not a known token column: \(1,\)',
-                               AnnotationTransformer, rows, groups)
+        self.assertRaisesRegex(
+            AssertionError,
+            r'column 4 \[ERROR\] not a known token column: \(1,\)',
+            AnnotationTransformer, rows, groups
+        )
 
     def test_wrong_text_col(self):
         rows = Rows()
         groups = {2: (3,)}
-        self.assertRaisesRegex(AssertionError,
-                               r'column 2 \[attribute\] not a known token column: \(1,\)',
-                               AnnotationTransformer, rows, groups)
+        self.assertRaisesRegex(
+            AssertionError,
+            r'column 2 \[attribute\] not a known token column: \(1,\)',
+            AnnotationTransformer, rows, groups
+        )
 
 
 class TestFeatureEncoder(TestCase):

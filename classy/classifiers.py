@@ -10,23 +10,25 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.linear_model import RidgeClassifier, LogisticRegression, \
     SGDClassifier
-from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.svm import LinearSVC, SVC
-
 
 CLASSIFIERS = {}
 
 
-def build(option, data, jobs=-1, presets=None):
+def build(option, jobs=-1, presets=None):
     """
     Create a classifier and add a one-vs-rest wrapper around it
     if the data is multinomial.
 
+    :param option: The name of the classifier to build.
     :return: A (classifier instance, parameter dictionary) tuple
     """
     if presets is None:
         presets = {}
+
+    if option == 'sgd':
+        presets['n_jobs'] = jobs
 
     try:
         classy = CLASSIFIERS[option](**presets)
@@ -34,10 +36,7 @@ def build(option, data, jobs=-1, presets=None):
         msg = 'unknown classifier {}'
         raise RuntimeError(msg.format(option))
 
-    if len(data.label_names) > 2:
-        return OneVsRestClassifier(classy, n_jobs=jobs)
-    else:
-        return classy
+    return classy
 
 
 def tfidf_transform(sublinear_tf=True, **presets):
@@ -51,8 +50,8 @@ def tfidf_transform(sublinear_tf=True, **presets):
 
 
 def ridge(max_iter=1e4, class_weight='auto', solver='auto', **presets):
-    return RidgeClassifier(max_iter=max_iter, class_weight=class_weight, solver=solver,
-                           **presets), {
+    return RidgeClassifier(max_iter=max_iter, solver=solver,
+                           class_weight=class_weight, **presets), {
         'classify__alpha': [1e3, 1e1, 1, 1e-1, 1e-2],
         'classify__normalize': [True, False],
         'classify__tol': [.05, 1e-3, 1e-6],
@@ -78,8 +77,10 @@ def svm(loss='hinge', max_iter=1e4, class_weight='auto', **presets):
 CLASSIFIERS[svm.__name__] = svm
 
 
-def sgd(class_weight='auto', n_iter=50):
-    return SGDClassifier(class_weight=class_weight, n_iter=n_iter), {
+def sgd(class_weight='auto', n_iter=50, **presets):
+    return SGDClassifier(
+        class_weight=class_weight, n_iter=n_iter, **presets
+    ), {
         'classify__alpha': [.1, .001, 1e-5, 1e-8],
         'classify__loss': ['hinge', 'squared_hinge', 'modified_huber'],
         'classify__penalty': ['l2', 'l1', 'elasticnet'],
@@ -115,12 +116,14 @@ def maxent(max_iter=1e4, class_weight='auto', **presets):
 CLASSIFIERS[maxent.__name__] = maxent
 
 
-def randomforest(n_estimators=40, max_depth=25, criterion='gini', max_features='auto',
-                 class_weight='auto', oob_score=False, **presets):
-    return RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth,
-                                  criterion=criterion, max_features=max_features,
-                                  class_weight=class_weight, oob_score=oob_score,
-                                  **presets), {
+def randomforest(n_estimators=40, max_depth=25, criterion='gini',
+                 max_features='auto', class_weight='auto', oob_score=False,
+                 **presets):
+    return RandomForestClassifier(
+        n_estimators=n_estimators, max_depth=max_depth, criterion=criterion,
+        max_features=max_features, class_weight=class_weight,
+        oob_score=oob_score, **presets
+    ), {
         'classify__n_estimators': [80, 40, 20, 10],
         'classify__max_depth': [100, 25, 5, 2],
         # 'classify__class_weight': ['auto', None],

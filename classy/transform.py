@@ -17,9 +17,6 @@ from numpy import int32, ones, zeros
 
 L = logging.getLogger(__name__)
 
-# scikit-learn strategy - see
-# https://github.com/scikit-learn/scikit-learn/blob/a95203b/sklearn/feature_extraction/text.py#L724
-
 
 class NGramTransformer(Etc):
 
@@ -75,10 +72,12 @@ class NGramTransformer(Etc):
 class KShingleTransformer(Etc):
 
     """
-    Takes text from a Transformer where every text field is already in the form of a list of tokens
-    and converts it into a k-shingle list (i.e., generating all k-combinations of tokens).
+    Takes text from a Transformer where every text field is already in the
+    form of a list of tokens and converts it into a k-shingle list (i.e.,
+    generating all k-combinations of tokens).
 
-    Should be used *after* an AnnotationTransformer to join tokens and annotations.
+    Should be used *after* an AnnotationTransformer to join tokens and
+    annotations.
     """
 
     def __init__(self, extractor, k=1):
@@ -128,9 +127,10 @@ class AnnotationTransformer(Etc):
     Takes a transformer and *attaches* annotations to each *token* by
     prefixing them with that annotation.
 
-    Attachment is done by prefixing the text target column with the name of the annotation
-    column followed by a hash (``#``), the string in the annotation source column, and
-    separated from the token by a colon character (``:``).
+    Attachment is done by prefixing the text target column with the name of
+    the annotation column followed by a hash (``#``), the string in the
+    annotation source column, and separated from the token by a colon
+    character (``:``).
     """
 
     def __init__(self, transformer, groups):
@@ -155,7 +155,9 @@ class AnnotationTransformer(Etc):
             col_name = self._names[col] if col < len(self._names) else "ERROR"
             err = msg.format(col, col_name, self.text_columns)
             assert col in self.text_columns, err
-            L.debug("group %s <= %s", self.names[col], [self.names[i] for i in self.groups[col]])
+            sources = [self.names[i] if len(self.names) > i else "ERROR"
+                       for i in self.groups[col]]
+            L.debug("group %s <= %s", self.names[col], sources)
 
     def __iter__(self):
         for row in self.rows:
@@ -171,7 +173,8 @@ class AnnotationTransformer(Etc):
                 except TypeError as ex2:
                     msg = "not all annotation_columns={} are strings: {}"
                     raise RuntimeError(
-                        msg.format(annotation_cols, [type(row[c]) for c in annotation_cols])
+                        msg.format(annotation_cols,
+                                   [type(row[c]) for c in annotation_cols])
                     ) from ex2
 
                 try:
@@ -194,10 +197,12 @@ class AnnotationTransformer(Etc):
 class FeatureTransformer(Etc):
 
     """
-    Takes a transformer and *appends* annotations as new features to each text field.
+    Takes a transformer and *appends* annotations as new features to each text
+    field.
 
-    Appending is done by adding the a string consisting of the name of the annotation column
-    and the annotation itself, separated by a colon character (``:``).
+    Appending is done by adding the a string consisting of the name of the
+    annotation column and the annotation itself, separated by a colon
+    character (``:``).
     """
 
     def __init__(self, transformer, columns, binarize=False):
@@ -222,7 +227,9 @@ class FeatureTransformer(Etc):
             if cols:
                 for txt in self.text_columns:
                     tokens = row[txt]
-                    feats = ["{:s}#{:s}".format(names[c], row[c]) for c in cols]
+                    feats = [
+                        "{:s}#{:s}".format(names[c], row[c]) for c in cols
+                    ]
                     tokens.extend(feats)
 
                     if self.binarize:
@@ -330,7 +337,8 @@ class FeatureEncoder(Etc):
             vocab = self.vocabulary
 
         if len(self.text_columns) == 1:
-            L.debug("generating tokens from column '%s'", self.names[self.text_columns[0]])
+            L.debug("generating tokens from column '%s'",
+                    self.names[self.text_columns[0]])
             token_generator = self._unirow_token_generator
         else:
             L.debug("generating tokens from columns: '%s'",
@@ -353,7 +361,8 @@ class FeatureEncoder(Etc):
             pointers.append(len(indices))
 
             if len(pointers) % 1000 == 0:
-                L.info("processed %s documents (vocab. size: %s)", len(pointers), len(vocab))
+                L.info("processed %s documents (vocab. size: %s)",
+                       len(pointers), len(vocab))
 
         if self.vocabulary is None or self._grow:
             self.vocabulary = dict(vocab)
