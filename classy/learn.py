@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.learn
-   :synopsis: Train a text classifier.
+   :synopsis: Training a text classifier model.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
@@ -33,93 +33,101 @@ def learn_model(args):
 
     pipeline.fit(data.index, data.labels)
     joblib.dump(pipeline, args.model)
-
-    if args.vocabulary:
-        cov = make_inverted_vocabulary(args.vocabulary, data)
-        classifier = pipeline._final_estimator
-        L.debug("classifier coefficients shape: %s", classifier.coef_.shape)
-        print_top_features(classifier, data, cov)
+    report_features(args, data, pipeline)
 
 
 def make_pipeline(args):
-    pipeline = []
     data = load_index(args.index)
+
+    if data.labels is None or len(data.labels) == 0:
+        raise RuntimeError("input data has no labels to learn from")
+
+    pipeline = []
+    presets = make_presets(args)
+    classifier, parameters = build(args.classifier, data, args.jobs, presets['classify'])
+
+    if hasattr(args, "grid_search") and args.grid_search:
+        L.debug("filtering zero variance features "
+                "to protect from divisions by zero during grid-search")
+        pipeline.append(('filter', VarianceThreshold(**presets['filter'])))
+
+    if args.tfidf:
+        L.debug("transforming features with TF-IDF")
+        tfidf, params = tfidf_transform(**presets['transform'])
+        pipeline.append(('transform', tfidf))
+        parameters.update(params)
+
+    L.debug("scaling all features to norm")
+    pipeline.append(('scale', Normalizer(**presets['scale'])))
+    parameters['scale__norm'] = ['l1', 'l2']
+
+    if args.filter:
+        L.debug("filtering features with L1-penalized %s",
+                "Logistic Regression" if args.classifier == "svm" else
+                "Linear SVM")
+        selector, params = l1_selector(args, presets)
+        pipeline.append(('select', selector))
+        parameters.update(params)
+
+    pipeline.append(('classify', classifier))
+    return Pipeline(pipeline), parameters, data
+
+
+def make_presets(args):
     presets = {'classify': {},
                'filter': {},
                'select': {},
                'scale': {},
                'transform': {}}
 
-    if data.labels is None or len(data.labels) == 0:
-        raise RuntimeError("input data has no labels to learn from")
-
-    if args.parameters:
+    if hasattr(args, "parameters") and args.parameters:
         for param in args.parameters.split(','):
             key, value = param.split('=', 1)
             name, prop = key.split('__', 1)
+            name = name.strip()
+            prop = prop.strip()
             value = eval(value)
             L.debug('preset for %s: %s=%s', name, prop, repr(value))
 
             try:
                 presets[name][prop] = value
             except KeyError:
-                L.error('%s not a valid preset group name', name)
+                L.error('"%s" is not a valid preset group name', name)
 
-    classifier, parameters = build(args.classifier, data, args.jobs, presets['classify'])
+    return presets
 
-    if hasattr(args, "grid_search") and args.grid_search:
-        L.debug("filtering zero variance features "
-                "to protect from divisions by zero")
-        pipeline.append(('filter', VarianceThreshold(**presets['filter'])))
 
-    if args.extract:
-        L.debug("extracting features with %s",
-                "Logistic Regression" if args.classifier == "svm" else
-                "a linear SVM")
+def l1_selector(args, presets):
+    presets['select']['penalty'] = 'l1'
 
-        if 'penalty' not in presets['select']:
-            presets['select']['penalty'] = 'l1'
+    if args.classifier in ("svm", "svg", "rbf"):
+        selector = maxent
+    else:
+        selector = svm
 
-        if args.classifier == "svm":
-            selector = maxent
-        else:
-            if 'loss' not in presets['select']:
-                presets['select']['loss'] = 'squared_hinge'
+        if 'loss' not in presets['select']:
+            presets['select']['loss'] = 'squared_hinge'
 
-            if 'dual' not in presets['select']:
-                presets['select']['dual'] = False
+        if 'dual' not in presets['select']:
+            presets['select']['dual'] = False
 
-            selector = svm
+    model, params = selector(**presets['select'])
+    clean_params = {}
 
-        model, params = selector(**presets['select'])
-        pipeline.append(('select', model))
+    for key, value in params.items():
+        key = key.replace('classify', 'select')
 
-        for key, value in params.items():
-            key = key.replace('classify', 'select')
+        if not (key.endswith('__penalty') or key.endswith('__loss')):
+            clean_params[key] = value
 
-            if not (key.endswith('__penalty') or key.endswith('__loss')):
-                parameters[key] = value
+        # C's <1 lead to empty feature sets...
+        clean_params['select__C'] = [1e4, 1e2, 1]
 
-    if args.tfidf:
-        L.debug("transforming features with TF-IDF")
-        tfidf, params = tfidf_transform(**presets['transform'])
-        parameters.update(params)
-        pipeline.append(('transform', tfidf))
-
-    L.debug("scaling features to norm")
-    pipeline.append(('scale', Normalizer(**presets['scale'])))
-    parameters['scale__norm'] = ['l1', 'l2']
-
-    if hasattr(args, "grid_search") and args.grid_search:
-        L.debug("grid-search parameters: %s", parameters)
-
-    pipeline.append(('classify', classifier))
-    pipeline = Pipeline(pipeline)
-
-    return pipeline, parameters, data
+    return model, clean_params
 
 
 def grid_search(pipeline, params, data, jobs=-1):
+    L.debug("grid-search: jobs=%s, parameters: %s", jobs, params)
     grid = GridSearchCV(pipeline, params, scoring=Scorer,
                         cv=4, refit=True, n_jobs=jobs, verbose=1)
     grid.fit(data.index, data.labels)
@@ -127,9 +135,26 @@ def grid_search(pipeline, params, data, jobs=-1):
     print("Parameters:")
 
     for name, value in grid.best_params_.items():
-        print('{} = {}'.format(name, repr(value)))
+        print('{}={}'.format(name, repr(value)))
 
     return grid.best_estimator_
+
+
+def report_features(args, data, pipeline):
+    classifier = pipeline._final_estimator
+
+    if hasattr(classifier, "coef_"):
+        n_coeffs = classifier.coef_.shape[1]
+        L.debug("number of final classifier coefficients: %s", n_coeffs)
+
+        if args.vocabulary and not args.filter:
+            cov = make_inverted_vocabulary(args.vocabulary, data)
+
+            if len(cov) == n_coeffs:
+                print_top_features(classifier, data, cov)
+            else:
+                L.info("vocab. size and classif. coefficients vector length "
+                       "do not match (voc=%s vs coeff=%s)", len(cov), n_coeffs)
 
 
 def print_top_features(classifier, data, inverted_vocabulary):

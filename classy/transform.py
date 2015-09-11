@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.transform
-   :synopsis: Transform text and additional features into sparse matrices.
+   :synopsis: Transform text and its annotations into a sparse matrix.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)

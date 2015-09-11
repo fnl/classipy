@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.evaluate
-   :synopsis: Evaluate a classifier against an inverted index.
+   :synopsis: Evaluate a classifier or model against an inverted index.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
@@ -11,8 +11,8 @@ from collections import Counter
 from sklearn.cross_validation import StratifiedKFold
 from sklearn.externals import joblib
 from sklearn import metrics
-from .data import load_index, make_inverted_vocabulary
-from .learn import make_pipeline, print_top_features
+from .data import load_index
+from .learn import make_pipeline, report_features
 
 L = logging.getLogger(__name__)
 
@@ -45,10 +45,6 @@ def cross_evaluation(args):
     pipeline, parameters, data = make_pipeline(args)
     cross_val = StratifiedKFold(data.labels, n_folds=args.folds, shuffle=True)
     results = []
-    inverted_vocabulary = None
-
-    if args.vocabulary:
-        inverted_vocabulary = make_inverted_vocabulary(args.vocabulary, data)
 
     for step, (train, test) in enumerate(cross_val):
         pipeline.fit(data.index[train], data.labels[train])
@@ -65,10 +61,7 @@ def cross_evaluation(args):
         results.append(evaluate(
             targets, predictions, data.label_names, data.min_label
         ))
-
-        if inverted_vocabulary is not None:
-            print_top_features(pipeline._final_estimator, data, inverted_vocabulary)
-
+        report_features(args, data, pipeline)
 
     print("\nCV Summary")
     print("Average Accuracy :", sum(i[0] for i in results) / len(results))

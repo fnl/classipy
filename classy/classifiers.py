@@ -1,14 +1,15 @@
 """
 .. py:module:: classy.classifiers
    :synopsis: All classifiers available to classy,
-              with generic, tuned parameter ranges for the grid search.
+              with tuned parameter ranges for the grid search.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 """
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.linear_model import RidgeClassifier, LogisticRegression
+from sklearn.linear_model import RidgeClassifier, LogisticRegression, \
+    SGDClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.svm import LinearSVC, SVC
@@ -42,7 +43,7 @@ def build(option, data, jobs=-1, presets=None):
 def tfidf_transform(sublinear_tf=True, **presets):
     return TfidfTransformer(sublinear_tf=sublinear_tf, **presets), {
         'transform__norm': ['l1', 'l2'],
-        'transform__sublinear_tf': [True, False],
+        # 'transform__sublinear_tf': [True, False],
         # 'transform__use_idf': [True, False],
         # Lidstone-like smoothing cannot be disabled:
         # 'transform__smooth_idf': [True, False],  # divides by zero...
@@ -65,10 +66,11 @@ CLASSIFIERS[ridge.__name__] = ridge
 def svm(loss='hinge', max_iter=1e4, class_weight='auto', **presets):
     return LinearSVC(loss=loss, max_iter=max_iter, class_weight=class_weight,
                      **presets), {
-        'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
-        'classify__loss': ['hinge', 'squared_hinge'],
-        'classify__intercept_scaling': [10., 1., .1],
+        'classify__C': [1e5, 1e2, 1, 1e-2],
         'classify__tol': [.05, 1e-4, 1e-8],
+        'classify__loss': ['hinge', 'squared_hinge'],
+        'classify__penalty': ['l2', 'l1'],
+        # 'classify__intercept_scaling': [10., 1., .1],
         # 'classify__class_weight': ['auto', None],
         # 'classify__dual': [True, False],  # doesn't mix...
     }
@@ -76,9 +78,23 @@ def svm(loss='hinge', max_iter=1e4, class_weight='auto', **presets):
 CLASSIFIERS[svm.__name__] = svm
 
 
-def rbf(max_iter=-1, cache_size=1000, class_weight='auto', **presets):
-    return SVC(max_iter=max_iter, cache_size=cache_size, class_weight=class_weight, **presets), {
-        'classify__C': [1e3, 5e1, 1, 1e-1, 1e-2],
+def sgd(class_weight='auto', n_iter=50):
+    return SGDClassifier(class_weight=class_weight, n_iter=n_iter), {
+        'classify__alpha': [.1, .001, 1e-5, 1e-8],
+        'classify__loss': ['hinge', 'squared_hinge', 'modified_huber'],
+        'classify__penalty': ['l2', 'l1', 'elasticnet'],
+        # 'classify__fit_intercept': [True, False],
+        # 'classify__class_weight': ['auto', None],
+    }
+
+CLASSIFIERS[sgd.__name__] = sgd
+
+
+def rbf(max_iter=-1, cache_size=1000, probability=True, class_weight='auto',
+        **presets):
+    return SVC(probability=probability, class_weight=class_weight,
+               cache_size=cache_size, max_iter=max_iter, **presets), {
+        'classify__C': [1e3, 5e1, 1, 1e-2],
         'classify__tol': [.05, 1e-4, 1e-8],
         # 'classify__class_weight': ['auto', None],
     }
@@ -90,9 +106,9 @@ def maxent(max_iter=1e4, class_weight='auto', **presets):
     return LogisticRegression(max_iter=max_iter, class_weight=class_weight,
                               **presets), {
         'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
-        'classify__intercept_scaling': [10, 1, .1],
-        'classify__penalty': ['l1', 'l2'],
         'classify__tol': [.05, 1e-4, 1e-8],
+        'classify__penalty': ['l1', 'l2'],
+        # 'classify__intercept_scaling': [10, 1, .1],
         # 'classify__class_weight': ['auto', None],
     }
 

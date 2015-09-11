@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.predict
-   :synopsis: Predict labels for an inverted index.
+   :synopsis: Predict text labels using a model and vocabulary.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)

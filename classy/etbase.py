@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.etbase
-   :synopsis: Base class for all Extractors and Transformers.
+   :synopsis: Base class for Extractors and Transformers.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)

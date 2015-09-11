@@ -15,7 +15,7 @@ from .data import save_index, save_vocabulary, make_data, load_vocabulary
 from .extract import Extractor, row_generator, row_generator_from_file
 from .transform import NGramTransformer, AnnotationTransformer, FeatureEncoder, KShingleTransformer, \
     FeatureTransformer, transform_input
-from .select import drop_words, select_best, eliminate_words
+from .select import drop_features, select_best, eliminate_features
 
 
 L = logging.getLogger(__name__)
@@ -44,13 +44,13 @@ def generate_data(args):
         data, vocabulary = parse_files(args, vocabulary)
 
     if args.cutoff > 1:
-        data = drop_words(args.cutoff, data, vocabulary)
+        data = drop_features(args.cutoff, data, vocabulary)
 
     if args.select > 0:
         data = select_best(args.select, data, vocabulary)
 
     if args.eliminate > 0:
-        data = eliminate_words(args.eliminate, data, vocabulary)
+        data = eliminate_features(args.eliminate, data, vocabulary)
 
     save_index(data, args.index)
 

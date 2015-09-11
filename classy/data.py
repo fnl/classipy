@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.data
-   :synopsis: Data I/O for the text classifiers.
+   :synopsis: Data and I/O methods for classy.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""A command-line tool for text classification."""
+"""The swiss-knife of text classification."""
 
 # License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
 
@@ -51,7 +51,7 @@ generate.add_argument("--no-label", action='store_true', help='there is no label
 generate.add_argument("--no-id", action='store_true', help='there is no ID column (use sequential numbering as text IDs)')
 generate.add_argument("--cutoff", '-c', default=1, metavar='C', type=int, help="drop features below min. document frequency C; value must be a positive integer (default: keep all features)")
 generate.add_argument("--select", '-s', default=0, metavar='S', type=int, help="select the S best features using a chi-square test; value must be a positive integer (default: keep all features)")
-generate.add_argument("--eliminate", '-e', default=0, metavar='E', type=int, help="select the K best features using a chi-square test; value must be a positive integer (default: keep all features)")
+generate.add_argument("--eliminate", '-e', default=0, metavar='E', type=int, help="recursively eliminate down to E features (default: keep all features)")
 generate.set_defaults(func=generate_data)
 
 select = commands.add_parser('select', help='feature selection to reduce the index and vocabulary size', aliases=['s', 'se', 'sel', 'sele', 'selec'])
@@ -70,7 +70,7 @@ learn.add_argument('index', metavar='INDEX', help="inverted index input file")
 learn.add_argument('model', metavar='MODEL', help="model output file")
 learn.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, help="vocabulary file to use for (optional) feature reports")
 learn.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
-learn.add_argument("--extract", action='store_true', help="extract features using L1-based selection with a linear model")
+learn.add_argument("--filter", action='store_true', help="filter features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
 learn.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default=%(default)s)")
 learn.add_argument("--parameters", '-p', type=str, help="comma-separated parameter string (e.g. \"classify__loss='hinge',scale__norm='l2',transform__sublinear_tf=True\")")
 learn.add_argument("--grid-search", '-g', action='store_true', help="run a 5xCV grid search to fit the optimal parameters before storing the model")
@@ -85,7 +85,7 @@ cross_validation.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, h
 cross_validation.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default: %(default)s)")
 cross_validation.add_argument("--folds", metavar='N', default=5, type=int, help="CV folds; N must be an integer > 1; (default=%(default)s)")
 cross_validation.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
-cross_validation.add_argument("--extract", action='store_true', help="extract features using L1-based selection with a linear model")
+cross_validation.add_argument("--filter", action='store_true', help="filter features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
 evaluate.set_defaults(func=evaluate_model)
 
 predict = commands.add_parser('predict', help='unlabeled data using a learned model (printing text ID - tab - label lines)', aliases=['p', 'pr', 'pre', 'pred', 'predi', 'predic'])

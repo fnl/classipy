@@ -1,6 +1,6 @@
 """
 .. py:module:: classy.select
-   :synopsis: Feature selection over the inverted indices.
+   :synopsis: Feature selection techniques to minimize an inverted index.
 
 .. moduleauthor:: Florian Leitner <florian.leitner@gmail.com>
 .. License: GNU Affero GPL v3 (http://www.gnu.org/licenses/agpl.html)
@@ -27,13 +27,13 @@ def select_features(args):
         vocabulary = None
 
     if args.cutoff > 1:
-        data = drop_words(args.cutoff, data, vocabulary)
+        data = drop_features(args.cutoff, data, vocabulary)
 
     if args.select > 0:
         data = select_best(args.select, data, vocabulary)
 
     if args.eliminate > 0:
-        data = eliminate_words(args.eliminate, data, vocabulary)
+        data = eliminate_features(args.eliminate, data, vocabulary)
 
     save_index(data, args.new_index)
 
@@ -41,9 +41,9 @@ def select_features(args):
         save_vocabulary(vocabulary, data, args.new_vocabulary)
 
 
-def drop_words(min_df, data, vocabulary=None):
+def drop_features(min_df, data, vocabulary=None):
     """
-    Prune words below some minimum document frequency ``min_df`` from the
+    Prune features below some minimum document frequency ``min_df`` from the
     vocabulary (in-place) and drop those columns from the inverted index.
 
     :param vocabulary: vocabulary dictionary (will be updated in-place)
@@ -61,7 +61,17 @@ def drop_words(min_df, data, vocabulary=None):
     return data
 
 
-def eliminate_words(k, data, vocabulary=None, steps=100):
+def eliminate_features(k, data, vocabulary=None, steps=100):
+    """
+    Recursively eliminate features from the set using a Linear SVM.
+    This will remove redundant features from the vocabulary and index.
+
+    :param k: number of features to keep
+    :param data: ``Data`` structure
+    :param vocabulary: vocabulary dictionary (will be updated in-place)
+    :param steps: number of recursive eliminations to make to get to k
+    :return: a new ``Data`` structure
+    """
     L.debug("recursively eliminating features down to %s", k)
     estimator = LinearSVC(penalty='l2', loss='hinge', class_weight='auto')
     step = (get_n_cols(data) - k) // steps + 1
@@ -75,7 +85,7 @@ def eliminate_words(k, data, vocabulary=None, steps=100):
 
 def select_best(k, data, vocabulary=None):
     """
-    Select the top ``k`` most informative words (using a chi-square test)
+    Select the top ``k`` most informative features (using a chi-square test)
     and drop everything else from the index and vocabulary.
 
     :param k: integer; the most informative features to maintain
