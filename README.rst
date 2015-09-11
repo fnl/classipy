@@ -123,7 +123,7 @@ Naturally, it can print the confidence scores for each prediction (binary labels
 
 Finally, ``classipy`` has a number of additional tricks up its sleeve that you can learn by reading the (command-line help) documentation.
 One noteworthy trick is to impute model parameters in the learning process: See ``--parameters`` in the ``classipy learn -h`` output.
-Important here is the format of the parameters, which is: "``GROUP``__``PARAMETER``=``VALUE``", with all parameters separated by commas.
+Important here is the format of the parameters, which is: " ``GROUP`` __ ``PARAMETER`` = ``VALUE`` ", with all parameters separated by commas.
 The following ``GROUP`` values are allowed:
 
 - ``classify`` for parameters of the classifier.
