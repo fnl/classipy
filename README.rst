@@ -87,36 +87,36 @@ This choice was made as to make the library tuned towards small annotated corpor
 Assuming you created two text files, ``learning.tsv`` and ``test.tsv``, the next step is to **generate** the inverted indices/feature matrices from the two sets.
 First, generate the learning index ``.idx`` and bootstrap the vocabulary ``.voc`` from the learning set text ``.tsv``::
 
-    classi.py -VV generate --vocabulary the.voc learning.idx learning.tsv [YOUR OPTIONS]
+    classipy -VV generate --vocabulary the.voc learning.idx learning.tsv [YOUR OPTIONS]
 
 This gives you the vocabulary your classifier will use and a combined training+development matrix.
 During this step, you already can apply feature selection techniques to hold the generated vocabulary at bay.
 
 Quickly check your feature generation has produced an index that can build a classifier in the approximate range of the performance you are hoping for::
 
-    classi.py -VV evaluate learning.idx [YOUR OPTIONS]
+    classipy -VV evaluate learning.idx [YOUR OPTIONS]
 
 If that result is too poor, you probably should think about other features to generate first.
 If it is "good enough", generate a test matrix with the same vocabulary while you are at it::
 
-    classi.py -VV generate --vocabulary the.voc test.idx test.tsv [SAME OPTIONS*]
+    classipy -VV generate --vocabulary the.voc test.idx test.tsv [SAME OPTIONS*]
 
 Here, the (existing) vocabulary ``the.voc`` now gets used to *select* only those features that have been used to create final (feature-selected) the training set index.
 Therefore, you should never use any of the feature selection options when generating test indices (e.g., ``--select`` or ``--cutoff``).
 
 Next, ``--grid-search`` for the "perfect" parameters for you classifier and use them to **learn** the "final" model::
 
-    classi.py -VV learn --vocabulary the.voc --grid-search text.idx the.model [YOUR OPTIONS]
+    classipy -VV learn --vocabulary the.voc --grid-search text.idx the.model [YOUR OPTIONS]
 
 Note that this might take a while, even hours or days, if your vocabulary or text collection is huge or your model very comples (see the options provided by ``learn``).
 After the model has been built, you can now **evaluate** it on the unseen and unused test data you set aside in the beginning::
 
-    classi.py -VV evaluate --vocabulary the.voc text.idx the.model [--pr-curve]
+    classipy -VV evaluate --vocabulary the.voc text.idx the.model [--pr-curve]
 
 The only option, ``--pr-curve``, can only be used if you have matplotlib_ installed (and correctly configured...) to plot the precision-recall curve.
 Assuming you are happy with the result, you now can **predict** lables for new texts with ``the.model``::
 
-    classi.py predict --vocabulary the.voc --text [--score] [GENERATE OPTOINS] moar_text.tsv
+    classipy predict --vocabulary the.voc --text [--score] [GENERATE OPTOINS] moar_text.tsv
 
 ``predict`` can also read text in columnar format off the STDIN, so it can be used in UNIX data pipelines, and naturally also works with pre-generated index files.
 Naturally, it can print the confidence scores for each prediction (binary labels: one score; multi-labels: one score for each label); see ``--scores``.
