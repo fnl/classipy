@@ -38,11 +38,11 @@ You also can cross-validate a pre-parametrized classifier on the inverted index 
 Once you are happy with the model you built, you can use it to run predictions on (unlabeled) text data-streams (i.e., UNIX pipes).
 Multiclass (multinomial) support is built-in and automatically detected/handled (usually as OvR a.k.a. OvA).
 
-.. _SciKit-Learn:: http://scikit-learn.org/
-.. _segtok:: https://pypi.python.org/pypi/segtok
-.. _AUC PR:: http://scikit-learn.org/stable/auto_examples/model_selection/plot_precision_recall.html
-.. _CrossValidated post:: http://stats.stackexchange.com/questions/7207/roc-vs-precision-and-recall-curves/158354#158354
-.. _MCC Score:: https://en.wikipedia.org/wiki/Matthews_correlation_coefficient
+.. _SciKit-Learn: http://scikit-learn.org/
+.. _segtok: https://pypi.python.org/pypi/segtok
+.. _AUC PR: http://scikit-learn.org/stable/auto_examples/model_selection/plot_precision_recall.html
+.. _CrossValidated post: http://stats.stackexchange.com/questions/7207/roc-vs-precision-and-recall-curves/158354#158354
+.. _MCC Score: https://en.wikipedia.org/wiki/Matthews_correlation_coefficient
 
 Install
 =======
@@ -54,9 +54,9 @@ Install
 This package has two strong dependencies: SciKit-Learn_ (and, thus, SciPy and NumPy) and segtok_ (and thus, regex_, a faster C-based regular expression library).
 In addition, but not required, to plot the main evaluation function (AUC PR), you will need to install matplotlib_ and configure some graphics library for it to use, e.g. PySide_.
 
-.. _matplotlib:: http://matplotlib.org/
-.. _PySide:: https://pypi.python.org/pypi/PySide
-.. _regex:: https://pypi.python.org/pypi/regex
+.. _matplotlib: http://matplotlib.org/
+.. _PySide: https://pypi.python.org/pypi/PySide
+.. _regex: https://pypi.python.org/pypi/regex
 
 Usage
 =====
