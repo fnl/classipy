@@ -6,7 +6,7 @@ classipy
 An automated text classification tool
 -------------------------------------
 
-``classipy`` is a command-line tool to develop a statistical model that the can be used classify text (streams).
+``classipy`` is a command-line tool for developing statistical models that the can be used classify text (streams).
 
 Overview
 ========
@@ -139,3 +139,17 @@ This then makes it possible to induce parameters either to build your own model 
 .. _Normalizer: http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Normalizer.html
 .. _TFIDFTransformer: http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfTransformer.html
 .. _VarianceThreshold: http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.VarianceThreshold.html
+
+Legal
+=====
+
+License: `GNU Affero General Public License v3`_
+
+Copyright (c) 2015, Florian Leitner. All rights reserved.
+
+.. _GNU Affero General Public License v3: https://www.gnu.org/licenses/agpl-3.0.en.html
+
+History
+=======
+
+- **1.0.0** initial release
