@@ -7,7 +7,7 @@ import logging
 from classy.classifiers import CLASSIFIERS
 from classy.evaluate import evaluate_model
 from classy.generate import generate_data
-from classy.helpers import print_labels, print_vocabulary, print_doc_ids
+from classy.helpers import print_labels, print_parameters, print_vocabulary, print_doc_ids
 from classy.learn import learn_model
 from classy.predict import predict_labels
 from classy.select import select_features
@@ -110,6 +110,10 @@ def main():
     labels = commands.add_parser('labels', help='list all label names (classes) in a (labeled) index file')
     labels.add_argument('index', metavar='INDEX', help="inverted index file")
     labels.set_defaults(func=print_labels)
+
+    parameters = commands.add_parser('parameters', help='list all parameters of a model file', aliases=['params'])
+    parameters.add_argument('model', metavar='MODEL', help="model file")
+    parameters.set_defaults(func=print_parameters)
 
     vocabulary = commands.add_parser('vocabulary', help='list all vocabulary words (features)', aliases=['v', 'vo', 'voc', 'voca', 'vocab'])
     vocabulary.add_argument('vocabulary', metavar='VOCAB', help="vocabulary file")
