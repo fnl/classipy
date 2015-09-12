@@ -29,7 +29,7 @@ def learn_model(args):
     pipeline, parameters, data = make_pipeline(args)
 
     if args.grid_search:
-        pipeline = grid_search(pipeline, parameters, data, args.jobs)
+        pipeline = grid_search(pipeline, parameters, data, args.jobs, args.folds)
 
     pipeline.fit(data.index, data.labels)
     joblib.dump(pipeline, args.model)
@@ -123,10 +123,10 @@ def l1_extractor(args, presets):
     return model, clean_params
 
 
-def grid_search(pipeline, params, data, jobs=-1):
+def grid_search(pipeline, params, data, jobs=-1, folds=4):
     L.debug("grid-search: jobs=%s, parameters: %s", jobs, params)
     grid = GridSearchCV(pipeline, params, scoring=Scorer,
-                        cv=4, refit=True, n_jobs=jobs, verbose=1)
+                        cv=folds, refit=True, n_jobs=jobs, verbose=1)
     grid.fit(data.index, data.labels)
     print("Best score:", grid.best_score_)
     print("Parameters:")
@@ -144,7 +144,7 @@ def report_features(args, data, pipeline):
         n_coeffs = classifier.coef_.shape[1]
         L.info("number of final classifier coefficients: %s", n_coeffs)
 
-        if args.vocabulary and not args.filter:
+        if args.vocabulary and not args.extract:
             cov = make_inverted_vocabulary(args.vocabulary, data)
 
             if len(cov) == n_coeffs:

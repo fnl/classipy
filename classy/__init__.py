@@ -70,6 +70,7 @@ def main():
     learn.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default=%(default)s)")
     learn.add_argument("--parameters", '-p', type=str, help="comma-separated parameter string (e.g. \"classify__loss='hinge',scale__norm='l2',transform__sublinear_tf=True\")")
     learn.add_argument("--grid-search", '-g', action='store_true', help="run a 5xCV grid search to fit the optimal parameters before storing the model")
+    learn.add_argument("--folds", metavar='N', default=4, type=int, help="CV folds for the grid-search; N must be an integer > 1; (default=%(default)s)")
     learn.set_defaults(func=learn_model)
 
     evaluate = commands.add_parser('evaluate', help='a trained model on unseen data or a classifier via CV (no model)', aliases=['e', 'ev', 'eva', 'eval', 'evalu', 'evalua', 'evaluat'])
