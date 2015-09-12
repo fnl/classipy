@@ -163,8 +163,8 @@ class AnnotationTransformer(Etc):
         for row in self.rows:
             for token_col, annotation_cols in self.groups.items():
                 try:
-                    annotations = ['{:s}#{:s}'.format(self.names[c], row[c])
-                                   for c in annotation_cols]
+                    annotations = ['%s#%s' % (self.names[c], row[c]) for
+                                   c in annotation_cols]
                 except IndexError as ex1:
                     msg = "len(row)={}, but annotation_col_indices={}"
                     raise RuntimeError(
@@ -181,7 +181,7 @@ class AnnotationTransformer(Etc):
                     ann_tokens = []
 
                     for name in annotations:
-                        ann_tokens.extend("{:s}:{:s}".format(name, token) for
+                        ann_tokens.extend("%s:%s" % (name, token) for
                                           token in row[token_col])
 
                     row[token_col].extend(ann_tokens)
@@ -227,9 +227,7 @@ class FeatureTransformer(Etc):
             if cols:
                 for txt in self.text_columns:
                     tokens = row[txt]
-                    feats = [
-                        "{:s}#{:s}".format(names[c], row[c]) for c in cols
-                    ]
+                    feats = ["%s#%s" % (names[c], row[c]) for c in cols]
                     tokens.extend(feats)
 
                     if self.binarize:
@@ -279,13 +277,13 @@ class FeatureEncoder(Etc):
         self._grow = grow_vocab and self.vocabulary is not None
 
     def _multirow_token_generator(self, row):
-        template = '{:s}={:s}'
+        template = '%s=%s'
 
         for col in self.text_columns:
             name = self.names[col]
 
             for token in row[col]:
-                yield template.format(name, token)
+                yield template % (name, token)
 
     def _unirow_token_generator(self, row):
         yield from row[self.text_columns[0]]
@@ -326,6 +324,7 @@ class FeatureEncoder(Etc):
         pointers.append(0)
         self.text_ids = []
         self.labels = []
+        hits = 0
 
         if self.vocabulary is None or self._grow:
             vocab = defaultdict(int)
@@ -353,16 +352,18 @@ class FeatureEncoder(Etc):
                 self.labels.append(row[self.label_col])
 
             for t in token_generator(row):
-                try:
+                if t in vocab or self._grow:
+                    hits += 1
                     indices.append(vocab[t])
-                except KeyError:
-                    pass  # ignore features not in the vocabulary
 
             pointers.append(len(indices))
 
-            if len(pointers) % 1000 == 0:
-                L.info("processed %s documents (vocab. size: %s)",
-                       len(pointers), len(vocab))
+            if len(pointers) % 10000 == 0:
+                L.info("processed %s documents (vocab. size: %s; vocab. hits: %s)",
+                       len(pointers), len(vocab), hits)
+
+        L.info("processed %s documents (vocab. size: %s; vocab. hits: %s)",
+               len(pointers), len(vocab), hits)
 
         if self.vocabulary is None or self._grow:
             self.vocabulary = dict(vocab)
