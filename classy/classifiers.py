@@ -42,7 +42,7 @@ def build(option, jobs=-1, presets=None):
 def tfidf_transform(sublinear_tf=True, **presets):
     return TfidfTransformer(sublinear_tf=sublinear_tf, **presets), {
         'transform__norm': ['l1', 'l2'],
-        # 'transform__sublinear_tf': [True, False],
+        'transform__sublinear_tf': [True, False],  # log TF scaling
         # 'transform__use_idf': [True, False],
         # Lidstone-like smoothing cannot be disabled:
         # 'transform__smooth_idf': [True, False],  # divides by zero...
@@ -52,9 +52,9 @@ def tfidf_transform(sublinear_tf=True, **presets):
 def ridge(max_iter=1e4, class_weight='auto', solver='auto', **presets):
     return RidgeClassifier(max_iter=max_iter, solver=solver,
                            class_weight=class_weight, **presets), {
-        'classify__alpha': [1e3, 1e1, 1, 1e-1, 1e-2],
+        'classify__alpha': [10., 1., .05, .001],
         'classify__normalize': [True, False],
-        'classify__tol': [.05, 1e-3, 1e-6],
+        'classify__tol': [.05, 1e-3, 1e-5],
         # 'classify__class_weight': ['auto', None],
         # 'classify__solver': ['svd', 'cholesky', 'lsqr', 'sparse_cg'],
     }
@@ -65,8 +65,8 @@ CLASSIFIERS[ridge.__name__] = ridge
 def svm(loss='hinge', max_iter=1e4, class_weight='auto', **presets):
     return LinearSVC(loss=loss, max_iter=max_iter, class_weight=class_weight,
                      **presets), {
-        'classify__C': [1e5, 1e2, 1, 1e-2],
-        'classify__tol': [.05, 1e-4, 1e-8],
+        'classify__C': [1000., 50., 1., .01],
+        'classify__tol': [.01, 1e-4, 1e-6],
         'classify__loss': ['hinge', 'squared_hinge'],
         'classify__penalty': ['l2', 'l1'],
         # 'classify__intercept_scaling': [10., 1., .1],
@@ -81,7 +81,7 @@ def sgd(class_weight='auto', n_iter=50, **presets):
     return SGDClassifier(
         class_weight=class_weight, n_iter=n_iter, **presets
     ), {
-        'classify__alpha': [.1, .001, 1e-5, 1e-8],
+        'classify__alpha': [1., .1, .01, .001],
         'classify__loss': ['hinge', 'squared_hinge', 'modified_huber'],
         'classify__penalty': ['l2', 'l1', 'elasticnet'],
         # 'classify__fit_intercept': [True, False],
@@ -95,8 +95,8 @@ def rbf(max_iter=-1, cache_size=1000, probability=True, class_weight='auto',
         **presets):
     return SVC(probability=probability, class_weight=class_weight,
                cache_size=cache_size, max_iter=max_iter, **presets), {
-        'classify__C': [1e3, 5e1, 1, 1e-2],
-        'classify__tol': [.05, 1e-4, 1e-8],
+        'classify__C': [1000., 50., 1., .01],
+        'classify__tol': [.01, 1e-4, 1e-6],
         # 'classify__class_weight': ['auto', None],
     }
 
@@ -106,8 +106,8 @@ CLASSIFIERS[rbf.__name__] = rbf
 def maxent(max_iter=1e4, class_weight='auto', **presets):
     return LogisticRegression(max_iter=max_iter, class_weight=class_weight,
                               **presets), {
-        'classify__C': [1e5, 1e2, 1, 1e-1, 1e-2],
-        'classify__tol': [.05, 1e-4, 1e-8],
+        'classify__C': [1000., 50., 1., .01],
+        'classify__tol': [.01, 1e-4, 1e-6],
         'classify__penalty': ['l1', 'l2'],
         # 'classify__intercept_scaling': [10, 1, .1],
         # 'classify__class_weight': ['auto', None],
