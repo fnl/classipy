@@ -4,3 +4,6 @@ __pycache__
 /lib/
 /share/
 /.*
+/classipy.egg-info/
+/man/
+/dist/
