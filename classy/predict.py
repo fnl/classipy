@@ -35,10 +35,6 @@ def batch_predictor(args):
 
     data = load_index(args.index[0])
     scores = None
-
-    if data.labels is None or len(data.labels) == 0:
-        raise RuntimeError("input data has no labels to learn from")
-
     pipeline = joblib.load(args.model)
     predictions = pipeline.predict(data.index.tocsr())
 
@@ -53,6 +49,12 @@ def batch_predictor(args):
     else:
         text_ids = range(1, get_n_rows(data) + 1)
 
+    make_label = str
+
+    if args.label:
+        n_labels = len(args.label)
+        make_label = lambda i: (args.label[i] if i < n_labels else i)
+
     if args.scores:
         for text_id, prediction, i_scores in \
                 zip(text_ids, predictions, scores):
@@ -60,10 +62,11 @@ def batch_predictor(args):
                 i_scores = (i_scores,)
 
             score_str = '\t'.join('{: 0.8f}'.format(s) for s in i_scores)
-            print(text_id, data.label_names[prediction], score_str, sep='\t')
+
+            print(text_id, make_label(prediction), score_str, sep='\t')
     else:
         for text_id, prediction in zip(text_ids, predictions):
-            print(text_id, data.label_names[prediction], sep='\t')
+            print(text_id, make_label(prediction), sep='\t')
 
 
 def stream_predictor(args):
