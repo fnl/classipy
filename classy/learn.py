@@ -47,10 +47,10 @@ def make_pipeline(args):
     classifier, parameters = build(args.classifier, args.jobs,
                                    presets['classify'])
 
-    if hasattr(args, "grid_search") and args.grid_search:
-        L.debug("prune zero variance features "
-                "to protect from divisions by zero during grid-search")
-        pipeline.append(('prune', VarianceThreshold(**presets['prune'])))
+    #if hasattr(args, "grid_search") and args.grid_search:
+    L.debug("prune zero variance features "
+            "to protect from divisions by zero during grid-search")
+    pipeline.append(('prune', VarianceThreshold(**presets['prune'])))
 
     if args.tfidf:
         L.debug("transforming features with TF-IDF")

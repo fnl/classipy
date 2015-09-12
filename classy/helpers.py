@@ -17,7 +17,7 @@ def print_labels(args):
 def print_parameters(args):
     pipeline = joblib.load(args.model)
 
-    for key, value in pipeline.get_params().items():
+    for key, value in sorted(pipeline.get_params().items()):
         if '__' in key:
             print(key, repr(value), sep='=')
 
