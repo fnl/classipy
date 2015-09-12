@@ -162,36 +162,42 @@ class AnnotationTransformer(Etc):
     def __iter__(self):
         for row in self.rows:
             for token_col, annotation_cols in self.groups.items():
-                try:
-                    annotations = ['%s#%s' % (self.names[c], row[c]) for
-                                   c in annotation_cols]
-                except IndexError as ex1:
-                    msg = "len(row)={}, but annotation_col_indices={}"
-                    raise RuntimeError(
-                        msg.format(len(row), annotation_cols)
-                    ) from ex1
-                except TypeError as ex2:
-                    msg = "not all annotation_columns={} are strings: {}"
-                    raise RuntimeError(
-                        msg.format(annotation_cols,
-                                   [type(row[c]) for c in annotation_cols])
-                    ) from ex2
-
-                try:
-                    ann_tokens = []
-
-                    for name in annotations:
-                        ann_tokens.extend("%s:%s" % (name, token) for
-                                          token in row[token_col])
-
-                    row[token_col].extend(ann_tokens)
-                except IndexError as ex3:
-                    msg = "len(row)={}, but token_column_index={} [{}]"
-                    raise RuntimeError(
-                        msg.format(len(row), token_col, self._names[token_col])
-                    ) from ex3
+                annotations = self.extract_annotations(row, annotation_cols)
+                self.annotate_tokens(row, token_col, annotations)
 
             yield row
+
+    def annotate_tokens(self, row, token_col, annotations):
+        try:
+            ann_tokens = []
+
+            for name in annotations:
+                ann_tokens.extend("%s:%s" % (name, token) for
+                                  token in row[token_col])
+
+            row[token_col].extend(ann_tokens)
+        except IndexError as ex3:
+            msg = "len(row)={}, but token_column_index={} [{}]"
+            raise RuntimeError(
+                msg.format(len(row), token_col, self._names[token_col])
+            ) from ex3
+
+    def extract_annotations(self, row, annotation_cols):
+        try:
+            annotations = ['%s#%s' % (self.names[c], row[c]) for
+                           c in annotation_cols]
+        except IndexError as ex1:
+            msg = "len(row)={}, but annotation_col_indices={}"
+            raise RuntimeError(
+                msg.format(len(row), annotation_cols)
+            ) from ex1
+        except TypeError as ex2:
+            msg = "not all annotation_columns={} are strings: {}"
+            raise RuntimeError(
+                msg.format(annotation_cols,
+                           [type(row[c]) for c in annotation_cols])
+            ) from ex2
+        return annotations
 
 
 class FeatureTransformer(Etc):
@@ -308,14 +314,12 @@ class FeatureEncoder(Etc):
             feature_counts = zeros(n_features, dtype=int32)
 
             for token in token_generator(row):
-                try:
+                if token in vocab:
                     feature_counts[vocab[token]] += 1
-                except KeyError:
-                    pass  # ignore features not in the vocabulary
 
             yield text_id, feature_counts.T  # transpose to document array
 
-            if line % 1000 == 0:
+            if line % 10000 == 0:
                 L.info("processed %s documents", line)
 
     def make_sparse_matrix(self):
@@ -325,24 +329,8 @@ class FeatureEncoder(Etc):
         self.text_ids = []
         self.labels = []
         hits = 0
-
-        if self.vocabulary is None or self._grow:
-            vocab = defaultdict(int)
-            vocab.default_factory = vocab.__len__
-
-            if self._grow and self.vocabulary is not None:
-                vocab.update(self.vocabulary)
-        else:
-            vocab = self.vocabulary
-
-        if len(self.text_columns) == 1:
-            L.debug("generating tokens from column '%s'",
-                    self.names[self.text_columns[0]])
-            token_generator = self._unirow_token_generator
-        else:
-            L.debug("generating tokens from columns: '%s'",
-                    "', '".join(self.names[c] for c in self.text_columns))
-            token_generator = self._multirow_token_generator
+        vocab = self.init_vocab()
+        token_generator = self.select_token_generator()
 
         for row in self.rows:
             if self.id_col is not None:
@@ -373,6 +361,28 @@ class FeatureEncoder(Etc):
                             dtype=int32)
         matrix.sum_duplicates()
         return matrix
+
+    def select_token_generator(self):
+        if len(self.text_columns) == 1:
+            L.debug("generating tokens from column '%s'",
+                    self.names[self.text_columns[0]])
+            token_generator = self._unirow_token_generator
+        else:
+            L.debug("generating tokens from columns: '%s'",
+                    "', '".join(self.names[c] for c in self.text_columns))
+            token_generator = self._multirow_token_generator
+        return token_generator
+
+    def init_vocab(self):
+        if self.vocabulary is None or self._grow:
+            vocab = defaultdict(int)
+            vocab.default_factory = vocab.__len__
+
+            if self._grow and self.vocabulary is not None:
+                vocab.update(self.vocabulary)
+        else:
+            vocab = self.vocabulary
+        return vocab
 
 
 def transform_input(generator, args):
