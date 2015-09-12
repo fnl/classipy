@@ -11,7 +11,7 @@ from collections import Counter
 from sklearn.cross_validation import StratifiedKFold
 from sklearn.externals import joblib
 from sklearn import metrics
-from .data import load_index
+from .data import load_index, get_n_rows
 from .learn import make_pipeline, report_features
 
 L = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ def simple_evaluation(args):
 
     pipeline = joblib.load(args.model)
     predictions = pipeline.predict(data.index)
+    L.debug('made %s predictions for %s documents', len(predictions), get_n_rows(data))
     evaluate(data.labels, predictions, data.label_names, data.min_label)
 
     if args.pr_curve:
