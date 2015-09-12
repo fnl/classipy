@@ -117,4 +117,4 @@ def prune(vocabulary, mask):
             else:
                 del vocabulary[word]
 
-        L.debug("vocabulary - new size: %s", len(vocabulary))
+        L.info("vocabulary - new size: %s", len(vocabulary))

@@ -124,13 +124,13 @@ Naturally, it can print the confidence scores for each prediction (binary labels
 Finally, ``classipy`` has a number of additional tricks up its sleeve that you can learn by reading the (command-line help) documentation.
 One noteworthy trick is to impute model parameters in the learning process: See ``--parameters`` in the ``classipy learn -h`` output.
 Important here is the format of the parameters, which is: " ``GROUP`` __ ``PARAMETER`` = ``VALUE`` ", with multiple parameters separated by commas.
-The following ``GROUP`` values are allowed:
+The following ``GROUP`` values are allowed (and the underlying classes are applied in this order in the pipeline):
 
-- ``classify`` for parameters of the classifier.
-- ``filter`` for parameters for the L1-penalized feature extraction model (LinearSVC_ [or LogisticRegression_ for SVM-based classifiers]).
-- ``scale`` for the feature scaling (Normalizer_) class.
-- ``transform`` for the TFIDFTransformer_ class.
-- ``prune`` for the VarianceThreshold_ class used by grid-search-based models.
+- ``prune`` for the VarianceThreshold_ class used to "protect" classifiers from zero-variance variables (used always).
+- ``transform`` for the TFIDFTransformer_ class used by ``--tfidf``.
+- ``scale`` for the feature normalization (Normalizer_) class used by ``--scale``.
+- ``classify`` for parameters of the ``--classifier``.
+- ``extract`` for parameters for the L1-penalized model used to ``--extract`` features (LinearSVC_ [or LogisticRegression_ for SVM-based classifiers]).
 
 This then makes it possible to induce parameters either to build your own model on the fly or to direct the gird search.
 

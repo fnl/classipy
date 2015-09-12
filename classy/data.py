@@ -112,7 +112,7 @@ def check_integrity(data):
 def save_index(data, path):
     """Save the ``data`` to ``path``."""
     check_integrity(data)
-    L.info("saving inverted index to '%s'", path)
+    L.debug("saving inverted index to '%s'", path)
 
     with open(path, 'wb') as f:
         pickle.dump(data, f)
@@ -120,7 +120,7 @@ def save_index(data, path):
 
 def load_index(path):
     """Load a Data structure from ``path``."""
-    L.info("loading inverted index from '%s'", path)
+    L.debug("loading inverted index from '%s'", path)
 
     with open(path, 'rb') as f:
         data = pickle.load(f)
@@ -137,7 +137,7 @@ def save_vocabulary(vocabulary, data, path):
     L.info("vocabulary size: %s", size)
     rnd_sample = sample(vocabulary.keys(), min(size, 50))
     L.debug("vocabulary sample: %s", ', '.join(rnd_sample))
-    L.info("saving vocabulary to '%s'", path)
+    L.debug("saving vocabulary to '%s'", path)
     n_cols = get_n_cols(data)
 
     if len(vocabulary) != n_cols:
@@ -153,7 +153,7 @@ def load_vocabulary(path, data=None):
     Load a vocabulary dict from ``path``,
     optionally ensuring it could be appropriate for ``data``.
     """
-    L.info("loading vocabulary from '%s'", path)
+    L.debug("loading vocabulary from '%s'", path)
 
     with open(path, 'rb') as f:
         vocabulary = pickle.load(f)

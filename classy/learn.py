@@ -47,9 +47,7 @@ def make_pipeline(args):
     classifier, parameters = build(args.classifier, args.jobs,
                                    presets['classify'])
 
-    #if hasattr(args, "grid_search") and args.grid_search:
-    L.debug("prune zero variance features "
-            "to protect from divisions by zero during grid-search")
+    L.debug("prune zero variance features to protect from divisions by zero")
     pipeline.append(('prune', VarianceThreshold(**presets['prune'])))
 
     if args.tfidf:
@@ -63,12 +61,12 @@ def make_pipeline(args):
         pipeline.append(('scale', Normalizer(**presets['scale'])))
         parameters['scale__norm'] = ['l1', 'l2']
 
-    if args.filter:
-        L.debug("filtering features with L1-penalized %s",
+    if args.extract:
+        L.debug("extracting features with L1-penalized %s",
                 "Logistic Regression" if args.classifier == "svm" else
                 "Linear SVM")
-        selector, params = l1_selector(args, presets)
-        pipeline.append(('select', selector))
+        extractor, params = l1_extractor(args, presets)
+        pipeline.append(('extract', extractor))
         parameters.update(params)
 
     pipeline.append(('classify', classifier))
@@ -77,10 +75,10 @@ def make_pipeline(args):
 
 def make_presets(args):
     presets = {'classify': {},
-               'prune': {},
-               'select': {},
+               'extract': {},
                'scale': {},
-               'transform': {}}
+               'transform': {},
+               'prune': {}}
 
     if hasattr(args, "parameters") and args.parameters:
         for param in args.parameters.split(','):
@@ -99,28 +97,28 @@ def make_presets(args):
     return presets
 
 
-def l1_selector(args, presets):
-    presets['select']['penalty'] = 'l1'
+def l1_extractor(args, presets):
+    presets['extract']['penalty'] = 'l1'
 
     if args.classifier in ("svm", "sgd", "rbf"):
-        selector = maxent
+        extractor = maxent
     else:
-        selector = svm
+        extractor = svm
 
-        if 'loss' not in presets['select']:
-            presets['select']['loss'] = 'squared_hinge'
+        if 'loss' not in presets['extract']:
+            presets['extract']['loss'] = 'squared_hinge'
 
-        if 'dual' not in presets['select']:
-            presets['select']['dual'] = False
+        if 'dual' not in presets['extract']:
+            presets['extract']['dual'] = False
 
-    model, params = selector(**presets['select'])
+    model, params = extractor(**presets['extract'])
     # C's <1 lead to empty feature sets -> too much "pruning"!
-    clean_params = dict(select__C=[1e4, 1e2, 1])
+    clean_params = dict(extract__C=[1e4, 1e2, 1])
 
     for key, values in params.items():
         if not (key.endswith('__penalty') or key.endswith('__loss') or
                 key.endswith('__C')):
-            clean_params[key.replace('classify', 'select')] = values
+            clean_params[key.replace('classify', 'extract')] = values
 
     return model, clean_params
 
@@ -144,7 +142,7 @@ def report_features(args, data, pipeline):
 
     if hasattr(classifier, "coef_"):
         n_coeffs = classifier.coef_.shape[1]
-        L.debug("number of final classifier coefficients: %s", n_coeffs)
+        L.info("number of final classifier coefficients: %s", n_coeffs)
 
         if args.vocabulary and not args.filter:
             cov = make_inverted_vocabulary(args.vocabulary, data)

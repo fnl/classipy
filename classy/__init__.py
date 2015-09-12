@@ -16,6 +16,7 @@ from classy.select import select_features
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"
 __version__ = "1.0"
 
+
 def main():
     parser = argparse.ArgumentParser(description="An AGPLv3 command-line tool for text classification.")
     parser.add_argument('--verbose', '-V', action='count', default=0, help='increase log level [WARN]')
@@ -63,9 +64,9 @@ def main():
     learn.add_argument('index', metavar='INDEX', help="inverted index input file")
     learn.add_argument('model', metavar='MODEL', help="model output file")
     learn.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, help="vocabulary file to use for (optional) feature reports")
-    learn.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
+    learn.add_argument("--tfidf", action='store_true', help="re-rank feature counts with a TF-IDF function")
     learn.add_argument("--scale", action='store_true', help="scale the features to norm")
-    learn.add_argument("--filter", action='store_true', help="filter features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
+    learn.add_argument("--extract", action='store_true', help="extract features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
     learn.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default=%(default)s)")
     learn.add_argument("--parameters", '-p', type=str, help="comma-separated parameter string (e.g. \"classify__loss='hinge',scale__norm='l2',transform__sublinear_tf=True\")")
     learn.add_argument("--grid-search", '-g', action='store_true', help="run a 5xCV grid search to fit the optimal parameters before storing the model")
@@ -79,9 +80,9 @@ def main():
     cross_validation.add_argument("--vocabulary", '-v', metavar='VOCAB', type=str, help="vocabulary file to use for (optional) cross-validation feature reports")
     cross_validation.add_argument("--classifier", '-c', default='svm', choices=CLASSIFIERS.keys(), help="classifier to use (default: %(default)s)")
     cross_validation.add_argument("--folds", metavar='N', default=5, type=int, help="CV folds; N must be an integer > 1; (default=%(default)s)")
-    cross_validation.add_argument("--tfidf", action='store_true', help="re-rank counts using a regularized TF-IDF score")
+    cross_validation.add_argument("--tfidf", action='store_true', help="re-rank feature counts with a TF-IDF function")
     cross_validation.add_argument("--scale", action='store_true', help="scale the features to norm")
-    cross_validation.add_argument("--filter", action='store_true', help="filter features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
+    cross_validation.add_argument("--extract", action='store_true', help="extract features using a L1-based, linear estimator (linear SVM or Logistic Regression)")
     evaluate.set_defaults(func=evaluate_model)
 
     predict = commands.add_parser('predict', help='unlabeled data using a learned model (printing text ID - tab - label lines)', aliases=['p', 'pr', 'pre', 'pred', 'predi', 'predic'])
@@ -131,8 +132,7 @@ def main():
     logging.basicConfig(filename=args.logfile, level=logging.WARNING + log_adjust,
                         format=log_format)
     logging.getLogger('').handlers[0].setFormatter(formatter)
-    logging.info('verbosity increased')
-    logging.debug('verbosity increased')
+    logging.debug('debug verbosity')
 
     try:
         args.func(args)
