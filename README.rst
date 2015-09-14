@@ -126,21 +126,20 @@ Assuming you are happy with the result, you now can **predict** lables for new t
 
     classipy predict --vocabulary the.voc --text [--score] [GENERATE OPTOINS] moar_text.tsv
 
-``predict`` can also read text in columnar format off the STDIN, so it can be used in UNIX data pipelines, and naturally also works with pre-generated index files.
-Naturally, it can print the confidence scores for each prediction (binary labels: one score; multi-labels: one score for each label); see ``--scores``.
+``predict`` can also read text in columnar format off the STDIN, so it can be used in UNIX data pipelines, and it also works with pre-generated index files. ``classipy`` can print the confidence scores for each prediction (binary labels: one score; multi-labels: one score for each label); see ``--scores``.
 
-Finally, ``classipy`` has a number of additional tricks up its sleeve that you can learn by reading the (command-line help) documentation.
+``classipy`` has a number of additional tricks up its sleeve that you can learn by studying the (command-line help) documentation of each command-word (``classipy learn -h``, for example).
 One noteworthy trick is to impute model parameters in the learning process: See ``--parameters`` in the ``classipy learn -h`` output.
-Important here is the format of the parameters, which is: "``GROUP``\ __\ ``PARAMETER``\ =\ ``VALUE``", with multiple parameters separated by commas.
-The following ``GROUP`` values are allowed (and the underlying classes are applied in this order in the pipeline):
+The format for the parameters is: "``GROUP``\ __\ ``PARAMETER``\ =\ ``VALUE``", with multiple parameters separated by commas.
+The following ``GROUP`` values are allowed (and the underlying classes are applied in this order in the pipeline), with ``PARAMETER`` names and ``VALUE`` values chosen according to the linked SciKit-Learn constructor:
 
-- ``prune`` for the VarianceThreshold_ class used to "protect" classifiers from zero-variance variables (used always).
+- ``prune`` for the VarianceThreshold_ class used to "protect" classifiers from zero-variance variables (this class is used always).
 - ``transform`` for the TFIDFTransformer_ class used by ``--tfidf``.
 - ``scale`` for the feature normalization (Normalizer_) class used by ``--scale``.
 - ``extract`` for parameters for the L1-penalized model used to ``--extract`` features (LinearSVC_ [or LogisticRegression_ for SVM-based classifiers]).
-- ``classify`` for parameters of the ``--classifier``.
+- ``classify`` for parameters of the respective ``--classifier``.
 
-This then makes it possible to induce parameters either to build your own model on the fly or to direct the gird search.
+Therefore, it is possible to induce parameters either to build your own models "on the fly" or to fine-tune the gird search.
 
 .. _LinearSVC: http://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html
 .. _LogisticRegression: http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
