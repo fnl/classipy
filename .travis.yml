@@ -3,7 +3,6 @@ python:
   - "3.3"
   - "3.4"
 install:
-  - "pip install ."
   - "pip install segtok scikit-learn scipy"
 script:
   - nosetests
