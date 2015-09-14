@@ -129,8 +129,8 @@ The following ``GROUP`` values are allowed (and the underlying classes are appli
 - ``prune`` for the VarianceThreshold_ class used to "protect" classifiers from zero-variance variables (used always).
 - ``transform`` for the TFIDFTransformer_ class used by ``--tfidf``.
 - ``scale`` for the feature normalization (Normalizer_) class used by ``--scale``.
-- ``classify`` for parameters of the ``--classifier``.
 - ``extract`` for parameters for the L1-penalized model used to ``--extract`` features (LinearSVC_ [or LogisticRegression_ for SVM-based classifiers]).
+- ``classify`` for parameters of the ``--classifier``.
 
 This then makes it possible to induce parameters either to build your own model on the fly or to direct the gird search.
 
