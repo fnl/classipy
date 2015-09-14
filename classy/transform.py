@@ -347,7 +347,8 @@ class FeatureEncoder(Etc):
             pointers.append(len(indices))
 
             if len(pointers) % 10000 == 0:
-                L.info("processed %s documents (vocab. size: %s; vocab. hits: %s)",
+                L.info("processed %s documents "
+                       "(vocab. size: %s; vocab. hits: %s)",
                        len(pointers), len(vocab), hits)
 
         L.info("processed %s documents (vocab. size: %s; vocab. hits: %s)",

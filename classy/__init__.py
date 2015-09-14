@@ -14,7 +14,7 @@ from classy.select import select_features
 
 
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 
 def main():
