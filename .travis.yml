@@ -14,8 +14,7 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 # Install packages
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy scikit-learn segtok nose
-  - conda install pip
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy scikit-learn nose pip
   - pip install segtok 
   - python setup.py install
 script:
