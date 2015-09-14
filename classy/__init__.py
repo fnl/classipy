@@ -14,11 +14,12 @@ from classy.select import select_features
 
 
 __author__ = "Florian Leitner <florian.leitner@gmail.com>"
-__version__ = "1.0"
+__version__ = "1.1.0"
 
 
 def main():
     parser = argparse.ArgumentParser(description="An AGPLv3 command-line tool for text classification.")
+    parser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
     parser.add_argument('--verbose', '-V', action='count', default=0, help='increase log level [WARN]')
     parser.add_argument('--quiet', '-Q', action='count', default=0, help='decrease log level [WARN]')
     parser.add_argument('--logfile', metavar='FILE', help='log to file instead of <STDERR>')

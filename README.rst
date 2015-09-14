@@ -152,4 +152,5 @@ Copyright (c) 2015, Florian Leitner. All rights reserved.
 History
 =======
 
+- **1.1.0** CV fold size for grid searches as command-line option ``--folds``; model parameter output/printing (command-word ``parameters`` or ``params``); label name bug fixed (when running predictions); correct naming of feature extraction option (``--extract`` instead of ``--filter``) and parameter group name (``extract`` instead of ``select``); more constrained grid-search ranges to avoid over-fitting; code refactorings and speedups (feature generation is about 30% faster now); version number printing option (``--version``)
 - **1.0.0** initial release
