@@ -2,7 +2,17 @@ language: python
 python:
   - "3.3"
   - "3.4"
+addons:
+  apt:
+    packages:
+      - libblas-dev
+      - liblapack-dev
+      - gfortran
+before_install:
+  - pip install -U pip
 install:
-  - "pip install segtok scikit-learn scipy"
+  - pip install .
+virtualenv:
+  system_site_packages: true
 script:
   - nosetests
