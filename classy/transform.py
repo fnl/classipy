@@ -151,13 +151,19 @@ class AnnotationTransformer(Etc):
         }
 
         for col in self.groups:
-            msg = "column {} [{}] not a known token column: {}"
+            msg = "text column {} [{}] is not a known text column: {}"
+            msg2 = "annotation column {} [{}] is a text column: {}"
             col_name = self._names[col] if col < len(self._names) else "ERROR"
-            err = msg.format(col, col_name, self.text_columns)
-            assert col in self.text_columns, err
             sources = [self.names[i] if len(self.names) > i else "ERROR"
                        for i in self.groups[col]]
+
+            if col not in self.text_columns:
+                raise ValueError(msg.format(col, col_name, self.text_columns))
+
             L.debug("group %s <= %s", self.names[col], sources)
+
+            if any(i in self.text_columns for i in self.groups[col]):
+                raise ValueError(msg2.format(col, col_name, self.text_columns))
 
     def __iter__(self):
         for row in self.rows:
@@ -191,12 +197,6 @@ class AnnotationTransformer(Etc):
             raise RuntimeError(
                 msg.format(len(row), annotation_cols)
             ) from ex1
-        except TypeError as ex2:
-            msg = "not all annotation_columns={} are strings: {}"
-            raise RuntimeError(
-                msg.format(annotation_cols,
-                           [type(row[c]) for c in annotation_cols])
-            ) from ex2
         return annotations
 
 
@@ -280,7 +280,7 @@ class FeatureEncoder(Etc):
         self.vocabulary = None if vocabulary is None else dict(vocabulary)
         self.text_ids = []
         self.labels = []
-        self._grow = grow_vocab and self.vocabulary is not None
+        self._grow = grow_vocab or self.vocabulary is None
 
     def _multirow_token_generator(self, row):
         template = '%s=%s'

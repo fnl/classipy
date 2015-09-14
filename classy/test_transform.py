@@ -196,18 +196,17 @@ class TestAnnotationTransformer(TestCase):
     def test_wrong_annotation_col(self):
         rows = Rows()
         groups = {1: (1, 3)}
-        at = AnnotationTransformer(rows, groups)
         self.assertRaisesRegex(
-            RuntimeError, r'not all annotation_columns=\(1, 3\) are strings',
-            lambda: next(iter(at))
+            ValueError, r'annotation column 1 \[text\] is a text column: \(1,\)',
+            AnnotationTransformer, rows, groups
         )
 
     def test_index_error_text_col(self):
         rows = Rows()
         groups = {4: (2, 3)}
         self.assertRaisesRegex(
-            AssertionError,
-            r'column 4 \[ERROR\] not a known token column: \(1,\)',
+            ValueError,
+            r'text column 4 \[ERROR\] is not a known text column: \(1,\)',
             AnnotationTransformer, rows, groups
         )
 
@@ -215,8 +214,8 @@ class TestAnnotationTransformer(TestCase):
         rows = Rows()
         groups = {2: (3,)}
         self.assertRaisesRegex(
-            AssertionError,
-            r'column 2 \[attribute\] not a known token column: \(1,\)',
+            ValueError,
+            r'text column 2 \[attribute\] is not a known text column: \(1,\)',
             AnnotationTransformer, rows, groups
         )
 
