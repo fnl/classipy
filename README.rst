@@ -2,11 +2,19 @@
 classipy
 ========
 
+.. image:: https://img.shields.io/pypi/v/classipy.svg
+    :target: https://pypi.python.org/pypi/classipy
+
+.. image:: https://img.shields.io/pypi/l/classipy.svg
+
+.. image:: https://travis-ci.org/fnl/classipy.svg?branch=master
+    :target: https://travis-ci.org/fnl/classipy
+
 -------------------------------------
 An automated text classification tool
 -------------------------------------
 
-``classipy`` is a command-line tool for developing statistical models that the can be used classify text (streams).
+``classipy`` is a command-line tool for developing statistical models that the can be used to (multiclass) label text (streams).
 
 Overview
 ========
