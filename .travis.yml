@@ -12,7 +12,5 @@ before_install:
   - pip install -U pip
 install:
   - pip install .
-virtualenv:
-  system_site_packages: true
 script:
   - nosetests
